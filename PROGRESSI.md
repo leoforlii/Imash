@@ -470,3 +470,18 @@ Registro di ogni attività svolta nel progetto, in ordine cronologico.
      2→3 Mix a tempo), salvare l'mp3, verificare i frame e il livello nei passaggi;
   3. mandare l'mp3 all'utente per l'ascolto;
   4. solo dopo, **chiedere conferma** all'utente prima di iniziare la fase 4 (Ritornelli).
+
+### 30. Progetto caricato su GitHub
+- Richiesta dell'utente: nuova repository con il progetto. Decisioni confermate: nome **Imash**
+  (come l'app), **escluse** la cartella `canzoni/` (audio protetti da diritti) e i file di build/cache.
+  Visibilità: l'utente ha creato la repository a mano su GitHub e l'ha resa **pubblica**.
+- ✅ Installato GitHub CLI 2.103.3 con winget (il login con `gh` non è stato poi usato).
+- ✅ `git init` (ramo `main`), `.gitignore` in radice (canzoni, `__pycache__`, build, `.gradle`,
+  `.cxx`, `local.properties`), `.gitattributes` (`gradlew` sempre con fine riga LF).
+- ✅ Primo commit `662dfee`: 107 file (app Android, sorgenti LAME con licenza LGPL, script Python,
+  design, PROGRESSI.md). Controllato: nessun audio, nessun percorso locale, nessuna chiave.
+- ✅ Push su **https://github.com/leoforlii/Imash** (ramo `main`). Il primo tentativo è stato
+  rifiutato perché Windows aveva salvate le credenziali di un altro account GitHub (`myname1101`):
+  l'indirizzo remoto ora contiene l'utente (`https://leoforlii@github.com/...`) e l'accesso è stato
+  fatto dall'utente nel browser.
+- Stato del lavoro invariato: voce 29 in pausa (prova sull'emulatore delle nuove transizioni da rifare).
