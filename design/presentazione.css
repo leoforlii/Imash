@@ -1,0 +1,112 @@
+/* =====================================================================
+   Solo per le pagine di presentazione del design (catalogo e schermate):
+   impaginazione, cornice del telefono, campioni dei token.
+   Non fa parte dell'app: in Compose non va riportato.
+   ===================================================================== */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--md-surface-container);
+  color: var(--md-on-surface);
+  font: var(--tipo-body-medium);
+}
+
+.pagina { max-width: 1120px; margin: 0 auto; padding: var(--sp-8) var(--sp-4) var(--sp-12); }
+.pagina > header h1 { font: var(--tipo-display-small); margin: 0; }
+.pagina > header p { font: var(--tipo-body-large); color: var(--md-on-surface-variant); max-width: 70ch; margin: var(--sp-2) 0 0; }
+.pagina nav { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-4); }
+.pagina nav a { color: var(--md-primary); font: var(--tipo-label-large); }
+
+.blocco { margin-top: var(--sp-12); }
+.blocco > h2 { font: var(--tipo-headline-small); margin: 0; }
+.blocco > p { color: var(--md-on-surface-variant); max-width: 70ch; margin: var(--sp-2) 0 0; }
+
+/* Coppia chiaro/scuro generata da presentazione.js */
+.coppia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-6);
+  margin-top: var(--sp-4);
+}
+.coppia-voce { margin: 0; flex: 1 1 360px; min-width: 0; }
+.coppia-voce.telefono-voce { flex: 0 0 auto; }
+.coppia-voce figcaption { font: var(--tipo-label-medium); color: var(--md-on-surface-variant); margin-top: var(--sp-2); }
+
+/* Pannello del catalogo (sfondo del tema) */
+.pannello {
+  padding: var(--sp-6);
+  border-radius: var(--forma-l);
+  display: grid;
+  gap: var(--sp-6);
+}
+.pannello > section > h3 { font: var(--tipo-title-medium); margin: 0 0 var(--sp-3); }
+.pannello .nota { font: var(--tipo-body-small); color: var(--md-on-surface-variant); margin: var(--sp-2) 0 0; }
+.fila { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; }
+
+/* Cornice del telefono: 360 × 780 dp */
+.telefono {
+  width: 360px;
+  height: 780px;
+  border-radius: 36px;
+  box-shadow: 0 0 0 10px #1C1F21, 0 0 0 11px #3A3F42;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: 11px;
+}
+.barra-stato {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 32px;
+  padding: 0 var(--sp-6);
+  font: var(--tipo-label-large);
+  flex: none;
+}
+.barra-stato .icona { font-size: 16px; }
+.schermo { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; }
+.contenuto { flex: 1; overflow-y: auto; min-height: 0; scrollbar-width: none; }
+.piede { padding: var(--sp-3) var(--sp-4) var(--sp-4); display: grid; gap: var(--sp-2); flex: none; }
+.barra-gesti { height: 24px; display: grid; place-items: center; flex: none; }
+.barra-gesti::before {
+  content: "";
+  width: 108px;
+  height: 4px;
+  border-radius: var(--forma-piena);
+  background: var(--md-on-surface);
+  opacity: .4;
+}
+
+/* Campioni colore, tipografia, spaziature, forme */
+.campioni { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-2); }
+.campione {
+  border-radius: var(--forma-s);
+  padding: var(--sp-3);
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: inset 0 0 0 1px var(--md-outline-variant);
+}
+.campione b { font: var(--tipo-label-medium); }
+.campione small { font: var(--tipo-label-small); font-variant-numeric: tabular-nums; opacity: .9; }
+.contrasto-ok::after { content: " ✓"; }
+.contrasto-ko { text-decoration: underline wavy; }
+.contrasto-ko::after { content: " ✗ sotto 4,5:1"; }
+
+.tipi { display: grid; gap: var(--sp-3); }
+.tipo { display: grid; grid-template-columns: 140px 1fr; gap: var(--sp-3); align-items: baseline; }
+.tipo code { font: var(--tipo-label-small); color: var(--md-on-surface-variant); }
+.tipo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.misure { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: flex-end; }
+.misura { display: grid; gap: var(--sp-1); justify-items: center; font: var(--tipo-label-small); color: var(--md-on-surface-variant); }
+.misura i { display: block; background: var(--md-primary); }
+.forma i { width: 64px; height: 48px; background: var(--md-primary-container); box-shadow: inset 0 0 0 1px var(--md-primary); }
+
+@media (max-width: 420px) {
+  .telefono { transform: scale(.88); transform-origin: top left; margin-bottom: -80px; }
+  .tipo { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Imash – catalogo</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="componenti.css">
+<link rel="stylesheet" href="presentazione.css">
+</head>
+<body>
+<main class="pagina">
+  <header>
+    <h1>Imash: design system</h1>
+    <p>Token e componenti Material 3 per l'app Android. I valori mostrati sono letti da <code>tokens.css</code>;
+      accanto a ogni colore c'è il contrasto con il suo testo (minimo richiesto 4,5:1).</p>
+    <nav><a href="schermate.html">Le schermate</a> <a href="#token">Token</a> <a href="#componenti">Componenti</a></nav>
+  </header>
+
+  <!-- ============================== TOKEN ============================== -->
+  <section class="blocco" id="token">
+    <h2>Token</h2>
+    <p>Colori dei ruoli M3, colori dei brani, tipografia, spaziature e forme.</p>
+    <template data-doppio="pannello">
+      <section>
+        <h3>Ruoli di colore</h3>
+        <div class="campioni" data-campioni="
+          md-primary:md-on-primary md-primary-container:md-on-primary-container
+          md-secondary:md-on-secondary md-secondary-container:md-on-secondary-container
+          md-tertiary:md-on-tertiary md-tertiary-container:md-on-tertiary-container
+          md-error:md-on-error md-error-container:md-on-error-container
+          md-surface:md-on-surface md-surface:md-on-surface-variant
+          md-surface-container-low:md-on-surface md-surface-container-highest:md-on-surface
+          md-inverse-surface:md-inverse-on-surface"></div>
+      </section>
+      <section>
+        <h3>Colori dei brani</h3>
+        <div class="campioni" data-campioni="brano-1:brano-testo brano-2:brano-testo brano-3:brano-testo brano-4:brano-testo brano-5:brano-testo brano-6:brano-testo"></div>
+        <p class="nota">Dal settimo brano i colori ricominciano dal primo. Il numero del brano è sempre scritto, il colore aiuta solo a ritrovarlo nella barra.</p>
+      </section>
+      <section>
+        <h3>Tipografia</h3>
+        <div class="tipi" data-tipi="display-large display-small headline-medium headline-small title-large title-medium body-large body-medium body-small label-large label-medium"></div>
+        <p class="nota">Bricolage Grotesque per titoli e durate, Figtree per testi ed etichette. Le cifre sono a larghezza fissa.</p>
+      </section>
+      <section>
+        <h3>Spaziature</h3>
+        <div class="misure" data-misure="sp-1 sp-2 sp-3 sp-4 sp-6 sp-8 sp-12"></div>
+      </section>
+      <section>
+        <h3>Forme</h3>
+        <div class="misure" data-forme="forma-xs forma-s forma-m forma-l forma-xl forma-piena"></div>
+        <p class="nota">Barra del mashup 4, numero del brano 8, righe 12, pulsante play 16, finestre 28, pulsanti a pillola.</p>
+      </section>
+    </template>
+  </section>
+
+  <!-- ============================ COMPONENTI ============================ -->
+  <section class="blocco" id="componenti">
+    <h2>Componenti</h2>
+    <p>Ogni componente con i suoi stati. Il nome Compose corrispondente è nel README.</p>
+    <template data-doppio="pannello">
+      <section>
+        <h3>Pulsanti</h3>
+        <div class="fila">
+          <button class="btn btn-pieno"><span class="icona">graphic_eq</span>Crea mashup</button>
+          <button class="btn btn-tonale"><span class="icona">add</span>Aggiungi mp3</button>
+          <button class="btn btn-contorno">Annulla</button>
+          <button class="btn btn-testo">Nuovo mashup</button>
+          <button class="btn btn-pieno" disabled>Disattivato</button>
+        </div>
+        <div class="fila" style="margin-top: var(--sp-3)">
+          <button class="btn btn-icona" aria-label="Rimuovi"><span class="icona">close</span></button>
+          <button class="btn btn-icona" aria-label="Indietro di 10 secondi"><span class="icona">replay_10</span></button>
+          <button class="btn btn-play" aria-label="Riproduci"><span class="icona piena">play_arrow</span></button>
+          <button class="btn btn-play" aria-label="Pausa"><span class="icona piena">pause</span></button>
+        </div>
+      </section>
+
+      <section>
+        <h3>Selettore della modalità</h3>
+        <div class="selettore" role="group" aria-label="Modalità">
+          <button class="selettore-voce" aria-pressed="true"><span class="icona">check</span>Canzoni intere</button>
+          <button class="selettore-voce" aria-pressed="false"><span class="icona">check</span>Ritornelli</button>
+        </div>
+      </section>
+
+      <section>
+        <h3>Barra del mashup</h3>
+        <p class="nota">Anteprima dell'ordine</p>
+        <div class="barra-mashup">
+          <i class="segmento" style="--c: var(--brano-1); --d: 3"></i>
+          <i class="segmento" style="--c: var(--brano-2); --d: 2"></i>
+          <i class="segmento" style="--c: var(--brano-3); --d: 3"></i>
+          <i class="segmento" style="--c: var(--brano-4); --d: 2"></i>
+        </div>
+        <p class="nota">Durante l'elaborazione: fatto, in corso (a strisce), in attesa</p>
+        <div class="barra-mashup">
+          <i class="segmento" style="--c: var(--brano-1)"></i>
+          <i class="segmento in-corso" style="--c: var(--brano-2)"></i>
+          <i class="segmento attesa"></i>
+          <i class="segmento attesa"></i>
+        </div>
+        <p class="nota">Come lettore, con la posizione di ascolto</p>
+        <div class="barra-contenitore">
+          <div class="barra-mashup">
+            <i class="segmento" style="--c: var(--brano-1)"></i>
+            <i class="segmento" style="--c: var(--brano-2)"></i>
+            <i class="segmento" style="--c: var(--brano-3)"></i>
+            <i class="segmento" style="--c: var(--brano-4)"></i>
+          </div>
+          <span class="testina" style="--pos: 40%"></span>
+        </div>
+        <div class="barra-tempi"><span>4:01</span><span>10:02</span></div>
+        <p class="nota">Oltre la durata massima (durata scelta + 20%): la parte in eccesso è a strisce</p>
+        <div class="barra-mashup">
+          <i class="segmento" style="--c: var(--brano-1); --d: 3"></i>
+          <i class="segmento" style="--c: var(--brano-2); --d: 4"></i>
+          <i class="segmento" style="--c: var(--brano-3); --d: 2"></i>
+          <i class="segmento" style="--c: var(--brano-4); --d: 5"></i>
+          <span class="limite" style="--pos: 70%"></span>
+        </div>
+      </section>
+
+      <section>
+        <h3>Cursore della durata</h3>
+        <div class="impostazione" style="padding: 0; --sfondo-cursore: var(--md-surface)">
+          <div class="impostazione-testa"><h2>Durata del mashup</h2><output>10 min</output></div>
+          <div class="cursore" role="slider" tabindex="0" aria-label="Durata del mashup" aria-valuemin="3" aria-valuemax="30" aria-valuenow="10" style="--v: 25.9%">
+            <span class="cursore-pieno"></span><span class="cursore-maniglia"></span>
+          </div>
+          <div class="barra-tempi" style="margin-top: 0"><span>3 min</span><span>30 min</span></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Riga del brano</h3>
+        <ol class="lista-brani" style="padding: 0">
+          <li class="riga-brano">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-1)">1</span>
+            <div class="riga-testi"><p class="riga-titolo">Notte di luglio</p><p class="riga-sotto">3:41</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Notte di luglio"><span class="icona">close</span></button>
+          </li>
+          <li class="riga-brano trascinata">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-2)">2</span>
+            <div class="riga-testi"><p class="riga-titolo">Onde corte (trascinata)</p><p class="riga-sotto">4:05</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Onde corte"><span class="icona">close</span></button>
+          </li>
+          <li class="riga-segnaposto" aria-hidden="true"></li>
+          <li class="riga-brano statica">
+            <span class="numero" style="--c: var(--brano-3)">3</span>
+            <div class="riga-testi"><p class="riga-titolo">Ultimo treno per il mare (nel risultato)</p><p class="riga-sotto">da 3:22</p></div>
+          </li>
+        </ol>
+      </section>
+
+      <section>
+        <h3>Passo di elaborazione</h3>
+        <ol class="passi" style="padding: 0">
+          <li class="passo fatto"><span class="icona piena stato-icona">check_circle</span><div><p class="riga-titolo">Notte di luglio</p><p class="fase">Unito</p></div></li>
+          <li class="passo in-corso">
+            <span class="icona stato-icona">progress_activity</span>
+            <div><p class="riga-titolo">Onde corte</p><div class="fasi"><span class="fatta">Analisi</span><span class="attiva">Taglio</span><span>Unione</span></div></div>
+            <div class="progresso"><span style="--p: 60%"></span></div>
+          </li>
+          <li class="passo attesa"><span class="icona stato-icona">schedule</span><div><p class="riga-titolo">Vento a favore</p><p class="fase">In attesa</p></div></li>
+          <li class="passo errore"><span class="icona piena stato-icona">error</span><div><p class="riga-titolo">registrazione.mp3</p><p class="fase">File non leggibile: saltato</p></div></li>
+        </ol>
+      </section>
+
+      <section>
+        <h3>Avvisi</h3>
+        <div style="display: grid; gap: var(--sp-2)">
+          <div class="avviso"><span class="icona">info</span><p><strong>I brani sono troppo corti</strong>Insieme durano 7:40. Aggiungi altri mp3 per arrivare a 10 minuti.</p></div>
+          <div class="avviso errore"><span class="icona">error</span><div><p><strong>Troppe canzoni per 10 minuti</strong>Insieme durano 17:10, oltre il massimo di 12:00. Togli qualche brano oppure aumenta la durata nelle impostazioni.</p><button class="btn btn-testo"><span class="icona">settings</span>Apri impostazioni</button></div></div>
+          <div class="avviso errore"><span class="icona">error</span><p><strong>Non riesco a leggere 1 file</strong>"registrazione.mp3" non è un mp3 valido. Toglilo dalla lista e riprova.</p></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Snackbar</h3>
+        <div class="snackbar"><p>Mashup salvato in Download</p><button class="btn">Apri</button></div>
+      </section>
+
+      <section>
+        <h3>Finestra di dialogo</h3>
+        <div class="dialogo" role="dialog" aria-labelledby="dlg">
+          <h2 id="dlg">Interrompere il mashup?</h2>
+          <p>Il lavoro fatto finora andrà perso. I tuoi mp3 restano dove sono.</p>
+          <div class="dialogo-azioni"><button class="btn btn-testo">Continua</button><button class="btn btn-testo">Interrompi</button></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Stato vuoto</h3>
+        <div class="stato-vuoto" style="padding: var(--sp-6)">
+          <span class="icona">library_music</span>
+          <h2>Nessun brano scelto</h2>
+          <p>Scegli almeno 2 mp3 dal telefono.</p>
+          <button class="btn btn-pieno"><span class="icona">add</span>Aggiungi mp3</button>
+        </div>
+      </section>
+    </template>
+  </section>
+</main>
+<script src="presentazione.js"></script>
+</body>
+</html>

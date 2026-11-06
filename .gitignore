@@ -1,0 +1,20 @@
+# Brani di prova: audio protetti da diritti, non vanno nella repository
+canzoni/
+
+# Python
+__pycache__/
+*.pyc
+
+# Android / Gradle (oltre a android/.gitignore)
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/.kotlin/
+android/.idea/
+*.iml
+
+# Sistema
+.DS_Store
+Thumbs.db

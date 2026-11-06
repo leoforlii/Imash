@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Imash – schermate</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="componenti.css">
+<link rel="stylesheet" href="presentazione.css">
+</head>
+<body>
+<main class="pagina">
+  <header>
+    <h1>Imash: schermate</h1>
+    <p>Concept delle schermate dell'app, in una cornice da 360 × 780 dp, in tema chiaro e scuro.
+      La barra colorata è il mashup (10 minuti di base, modificabili nelle impostazioni): un segmento per brano, sfumato dove c'è la dissolvenza.</p>
+    <nav><a href="catalogo.html">Catalogo componenti e token</a></nav>
+  </header>
+
+  <!-- ============================================================ -->
+  <section class="blocco" id="selezione">
+    <h2>1. Scegli i brani</h2>
+    <p>Si sceglie la modalità, si aggiungono gli mp3 e si riordinano trascinando la maniglia.
+      Il terzo brano è mostrato mentre viene trascinato.</p>
+    <template data-doppio="telefono">
+      <div class="contenuto">
+        <div class="appbar">
+          <h1 class="appbar-titolo">Imash</h1>
+          <button class="btn btn-icona" aria-label="Impostazioni"><span class="icona">settings</span></button>
+        </div>
+        <div style="padding: 0 var(--sp-4)">
+          <div class="selettore" role="group" aria-label="Modalità">
+            <button class="selettore-voce" aria-pressed="true"><span class="icona">check</span>Canzoni intere</button>
+            <button class="selettore-voce" aria-pressed="false"><span class="icona">check</span>Ritornelli</button>
+          </div>
+        </div>
+        <p class="selettore-aiuto">Ogni canzone viene accorciata sulle misure per arrivare a 10 minuti.</p>
+
+        <div class="sezione"><h2>Anteprima del mashup</h2><span>10:00</span></div>
+        <div style="padding: 0 var(--sp-4)">
+          <div class="barra-mashup" aria-label="Anteprima: 4 brani in 10 minuti">
+            <i class="segmento" style="--c: var(--brano-1); --d: 153"></i>
+            <i class="segmento" style="--c: var(--brano-2); --d: 168"></i>
+            <i class="segmento" style="--c: var(--brano-3); --d: 137"></i>
+            <i class="segmento" style="--c: var(--brano-4); --d: 142"></i>
+          </div>
+          <div class="barra-tempi"><span>0:00</span><span>11:00 di brani, accorciati a 10:00</span><span>10:00</span></div>
+        </div>
+
+        <div class="sezione"><h2>4 brani</h2><span>Trascina per cambiare l'ordine</span></div>
+        <ol class="lista-brani">
+          <li class="riga-brano">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-1)">1</span>
+            <div class="riga-testi"><p class="riga-titolo">Notte di luglio</p><p class="riga-sotto">2:48</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Notte di luglio"><span class="icona">close</span></button>
+          </li>
+          <li class="riga-brano">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-2)">2</span>
+            <div class="riga-testi"><p class="riga-titolo">Onde corte</p><p class="riga-sotto">3:05</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Onde corte"><span class="icona">close</span></button>
+          </li>
+          <li class="riga-brano trascinata">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-3)">3</span>
+            <div class="riga-testi"><p class="riga-titolo">Ultimo treno per il mare</p><p class="riga-sotto">2:31</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Ultimo treno per il mare"><span class="icona">close</span></button>
+          </li>
+          <li class="riga-brano">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-4)">4</span>
+            <div class="riga-testi"><p class="riga-titolo">Vento a favore</p><p class="riga-sotto">2:36</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Vento a favore"><span class="icona">close</span></button>
+          </li>
+        </ol>
+        <div style="padding: var(--sp-3) var(--sp-4) var(--sp-4)">
+          <button class="btn btn-tonale"><span class="icona">add</span>Aggiungi mp3</button>
+        </div>
+      </div>
+      <div class="piede">
+        <button class="btn btn-pieno btn-largo"><span class="icona">graphic_eq</span>Crea mashup</button>
+      </div>
+    </template>
+  </section>
+
+  <!-- ============================================================ -->
+  <section class="blocco" id="vuota">
+    <h2>1b. Nessun brano ancora</h2>
+    <p>Al primo avvio la lista è vuota: lo schermo invita ad aggiungere gli mp3. "Crea mashup" resta disattivato finché non ci sono almeno 2 brani.</p>
+    <template data-doppio="telefono">
+      <div class="contenuto">
+        <div class="appbar">
+          <h1 class="appbar-titolo">Imash</h1>
+          <button class="btn btn-icona" aria-label="Impostazioni"><span class="icona">settings</span></button>
+        </div>
+        <div style="padding: 0 var(--sp-4)">
+          <div class="selettore" role="group" aria-label="Modalità">
+            <button class="selettore-voce" aria-pressed="false"><span class="icona">check</span>Canzoni intere</button>
+            <button class="selettore-voce" aria-pressed="true"><span class="icona">check</span>Ritornelli</button>
+          </div>
+        </div>
+        <p class="selettore-aiuto">Da ogni canzone si prende il ritornello, poi i ritornelli vengono uniti fino a 10 minuti.</p>
+        <div class="stato-vuoto">
+          <span class="icona">library_music</span>
+          <h2>Nessun brano scelto</h2>
+          <p>Scegli almeno 2 mp3 dal telefono. Potrai cambiarne l'ordine trascinandoli.</p>
+          <button class="btn btn-pieno"><span class="icona">add</span>Aggiungi mp3</button>
+        </div>
+      </div>
+      <div class="piede">
+        <button class="btn btn-pieno btn-largo" disabled><span class="icona">graphic_eq</span>Crea mashup</button>
+      </div>
+    </template>
+  </section>
+
+  <!-- ============================================================ -->
+  <section class="blocco" id="troppe">
+    <h2>1c. Troppe canzoni</h2>
+    <p>In "Canzoni intere" i brani possono superare la durata scelta al massimo del 20%: l'app li accorcia sulle misure.
+      Oltre (qui 17:10 contro un massimo di 12:00) compare l'avviso e "Crea mashup" si disattiva.
+      Nella barra la parte oltre il limite è a strisce.</p>
+    <template data-doppio="telefono">
+      <div class="contenuto">
+        <div class="appbar">
+          <h1 class="appbar-titolo">Imash</h1>
+          <button class="btn btn-icona" aria-label="Impostazioni"><span class="icona">settings</span></button>
+        </div>
+        <div style="padding: 0 var(--sp-4)">
+          <div class="selettore" role="group" aria-label="Modalità">
+            <button class="selettore-voce" aria-pressed="true"><span class="icona">check</span>Canzoni intere</button>
+            <button class="selettore-voce" aria-pressed="false"><span class="icona">check</span>Ritornelli</button>
+          </div>
+        </div>
+        <p class="selettore-aiuto">Ogni canzone viene accorciata sulle misure per arrivare a 10 minuti.</p>
+
+        <div style="padding: var(--sp-4) var(--sp-4) 0">
+          <div class="avviso errore" role="alert">
+            <span class="icona">error</span>
+            <div>
+              <p><strong>Troppe canzoni per 10 minuti</strong>Insieme durano 17:10, oltre il massimo di 12:00.
+                Togli qualche brano oppure aumenta la durata nelle impostazioni.</p>
+              <button class="btn btn-testo"><span class="icona">settings</span>Apri impostazioni</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sezione"><h2>Anteprima del mashup</h2><span>17:10 su 10:00</span></div>
+        <div style="padding: 0 var(--sp-4)">
+          <div class="barra-mashup" aria-label="Anteprima: 17 minuti e 10 secondi, oltre il massimo di 12 minuti">
+            <i class="segmento" style="--c: var(--brano-1); --d: 203"></i>
+            <i class="segmento" style="--c: var(--brano-2); --d: 252"></i>
+            <i class="segmento" style="--c: var(--brano-3); --d: 95"></i>
+            <i class="segmento" style="--c: var(--brano-4); --d: 280"></i>
+            <i class="segmento" style="--c: var(--brano-5); --d: 200"></i>
+            <span class="limite" style="--pos: 69.9%" aria-hidden="true"></span>
+          </div>
+          <div class="barra-tempi"><span>0:00</span><span>massimo 12:00 | 17:10</span></div>
+        </div>
+
+        <div class="sezione"><h2>5 brani</h2><span>17:10 in totale</span></div>
+        <ol class="lista-brani">
+          <li class="riga-brano">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-1)">1</span>
+            <div class="riga-testi"><p class="riga-titolo">Notte di luglio</p><p class="riga-sotto">3:23</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Notte di luglio"><span class="icona">close</span></button>
+          </li>
+          <li class="riga-brano">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-2)">2</span>
+            <div class="riga-testi"><p class="riga-titolo">Onde corte</p><p class="riga-sotto">4:12</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Onde corte"><span class="icona">close</span></button>
+          </li>
+          <li class="riga-brano">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-3)">3</span>
+            <div class="riga-testi"><p class="riga-titolo">Ultimo treno per il mare</p><p class="riga-sotto">1:35</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Ultimo treno per il mare"><span class="icona">close</span></button>
+          </li>
+          <li class="riga-brano">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-4)">4</span>
+            <div class="riga-testi"><p class="riga-titolo">Vento a favore</p><p class="riga-sotto">4:40</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Vento a favore"><span class="icona">close</span></button>
+          </li>
+          <li class="riga-brano">
+            <span class="maniglia icona" aria-hidden="true">drag_indicator</span>
+            <span class="numero" style="--c: var(--brano-5)">5</span>
+            <div class="riga-testi"><p class="riga-titolo">Luci sul porto</p><p class="riga-sotto">3:20</p></div>
+            <button class="btn btn-icona" aria-label="Rimuovi Luci sul porto"><span class="icona">close</span></button>
+          </li>
+        </ol>
+      </div>
+      <div class="piede">
+        <button class="btn btn-pieno btn-largo" disabled><span class="icona">graphic_eq</span>Crea mashup</button>
+      </div>
+    </template>
+  </section>
+
+  <!-- ============================================================ -->
+  <section class="blocco" id="elaborazione">
+    <h2>2. Elaborazione</h2>
+    <p>La barra si riempie brano per brano. Ogni brano passa per tre fasi: analisi (battiti e ritornello), taglio sulle misure, unione con dissolvenza.
+      Lo stato è sempre scritto, non solo colorato.</p>
+    <template data-doppio="telefono">
+      <div class="contenuto">
+        <div class="appbar-grande">
+          <h1>Sto creando il mashup</h1>
+          <p>Ritornelli poi unisci, 6 brani</p>
+        </div>
+        <div style="padding: 0 var(--sp-4)">
+          <p class="cifra-grande" aria-label="42 per cento">42%</p>
+          <div class="barra-mashup" role="progressbar" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100" aria-label="Avanzamento del mashup">
+            <i class="segmento" style="--c: var(--brano-1); --d: 100"></i>
+            <i class="segmento" style="--c: var(--brano-2); --d: 100"></i>
+            <i class="segmento in-corso" style="--c: var(--brano-3); --d: 100"></i>
+            <i class="segmento attesa" style="--d: 100"></i>
+            <i class="segmento attesa" style="--d: 100"></i>
+            <i class="segmento attesa" style="--d: 100"></i>
+          </div>
+          <div class="barra-tempi"><span>Brano 3 di 6</span><span>circa 2 minuti rimasti</span></div>
+        </div>
+
+        <div class="sezione"><h2>Brani</h2></div>
+        <ol class="passi">
+          <li class="passo fatto">
+            <span class="icona piena stato-icona">check_circle</span>
+            <div><p class="riga-titolo">Notte di luglio</p><p class="fase">Unito</p></div>
+          </li>
+          <li class="passo fatto">
+            <span class="icona piena stato-icona">check_circle</span>
+            <div><p class="riga-titolo">Onde corte</p><p class="fase">Unito. Ritornello non trovato: usato il tratto più intenso</p></div>
+          </li>
+          <li class="passo in-corso">
+            <span class="icona stato-icona">progress_activity</span>
+            <div>
+              <p class="riga-titolo">Ultimo treno per il mare</p>
+              <div class="fasi" aria-label="Fase: taglio sulle misure">
+                <span class="fatta">Analisi</span><span class="attiva">Taglio</span><span>Unione</span>
+              </div>
+            </div>
+            <div class="progresso" aria-hidden="true"><span style="--p: 60%"></span></div>
+          </li>
+          <li class="passo attesa">
+            <span class="icona stato-icona">schedule</span>
+            <div><p class="riga-titolo">Vento a favore</p><p class="fase">In attesa</p></div>
+          </li>
+          <li class="passo attesa">
+            <span class="icona stato-icona">schedule</span>
+            <div><p class="riga-titolo">Luci sul porto</p><p class="fase">In attesa</p></div>
+          </li>
+          <li class="passo attesa">
+            <span class="icona stato-icona">schedule</span>
+            <div><p class="riga-titolo">Corsa in bicicletta</p><p class="fase">In attesa</p></div>
+          </li>
+        </ol>
+      </div>
+      <div class="piede">
+        <button class="btn btn-contorno btn-largo">Annulla</button>
+      </div>
+    </template>
+  </section>
+
+  <!-- ============================================================ -->
+  <section class="blocco" id="risultato">
+    <h2>3. Risultato</h2>
+    <p>La barra diventa il lettore: si ascolta l'anteprima e si salta da un brano all'altro.
+      "Salva mp3" apre il "Salva con nome" di Android, dove si scelgono cartella e nome.</p>
+    <template data-doppio="telefono">
+      <div class="contenuto">
+        <div class="appbar con-navigazione">
+          <button class="btn btn-icona" aria-label="Torna ai brani"><span class="icona">arrow_back</span></button>
+          <h1 class="appbar-titolo">Mashup pronto</h1>
+        </div>
+        <div style="padding: var(--sp-2) var(--sp-4) 0">
+          <p class="cifra-grande">10:02</p>
+          <p class="riga-sotto" style="font: var(--tipo-body-medium)">6 ritornelli uniti con dissolvenze di 2 misure</p>
+
+          <div class="barra-contenitore" style="margin-top: var(--sp-6)">
+            <div class="barra-mashup" role="slider" aria-label="Posizione di ascolto" aria-valuetext="3 minuti e 12 secondi su 10 minuti e 2 secondi" tabindex="0">
+              <i class="segmento" style="--c: var(--brano-1); --d: 98"></i>
+              <i class="segmento" style="--c: var(--brano-2); --d: 104"></i>
+              <i class="segmento" style="--c: var(--brano-3); --d: 101"></i>
+              <i class="segmento" style="--c: var(--brano-4); --d: 99"></i>
+              <i class="segmento" style="--c: var(--brano-5); --d: 102"></i>
+              <i class="segmento" style="--c: var(--brano-6); --d: 98"></i>
+            </div>
+            <span class="testina" style="--pos: 32%" aria-hidden="true"></span>
+          </div>
+          <div class="barra-tempi"><span>3:12</span><span>10:02</span></div>
+
+          <div class="fila" style="justify-content: center; gap: var(--sp-6); margin-top: var(--sp-4)">
+            <button class="btn btn-icona" aria-label="Indietro di 10 secondi"><span class="icona">replay_10</span></button>
+            <button class="btn btn-play" aria-label="Pausa"><span class="icona piena">pause</span></button>
+            <button class="btn btn-icona" aria-label="Avanti di 10 secondi"><span class="icona">forward_10</span></button>
+          </div>
+        </div>
+
+        <div class="sezione"><h2>Nel mashup</h2><span>Tocca per saltare</span></div>
+        <ol class="lista-brani">
+          <li class="riga-brano statica"><span class="numero" style="--c: var(--brano-1)">1</span><div class="riga-testi"><p class="riga-titolo">Notte di luglio</p><p class="riga-sotto">da 0:00</p></div></li>
+          <li class="riga-brano statica"><span class="numero" style="--c: var(--brano-2)">2</span><div class="riga-testi"><p class="riga-titolo">Onde corte</p><p class="riga-sotto">da 1:38, in ascolto</p></div></li>
+          <li class="riga-brano statica"><span class="numero" style="--c: var(--brano-3)">3</span><div class="riga-testi"><p class="riga-titolo">Ultimo treno per il mare</p><p class="riga-sotto">da 3:22</p></div></li>
+          <li class="riga-brano statica"><span class="numero" style="--c: var(--brano-4)">4</span><div class="riga-testi"><p class="riga-titolo">Vento a favore</p><p class="riga-sotto">da 5:03</p></div></li>
+          <li class="riga-brano statica"><span class="numero" style="--c: var(--brano-5)">5</span><div class="riga-testi"><p class="riga-titolo">Luci sul porto</p><p class="riga-sotto">da 6:42</p></div></li>
+          <li class="riga-brano statica"><span class="numero" style="--c: var(--brano-6)">6</span><div class="riga-testi"><p class="riga-titolo">Corsa in bicicletta</p><p class="riga-sotto">da 8:24</p></div></li>
+        </ol>
+      </div>
+      <div class="piede">
+        <button class="btn btn-pieno btn-largo"><span class="icona">save</span>Salva mp3</button>
+        <button class="btn btn-testo">Nuovo mashup</button>
+      </div>
+    </template>
+  </section>
+
+  <!-- ============================================================ -->
+  <section class="blocco" id="impostazioni">
+    <h2>4. Impostazioni</h2>
+    <p>Si apre dall'ingranaggio nella schermata dei brani. La durata si sceglie con un cursore da 3 a 30 minuti, a passi di 1 minuto; la predefinita è 10.</p>
+    <template data-doppio="telefono">
+      <div class="contenuto">
+        <div class="appbar con-navigazione">
+          <button class="btn btn-icona" aria-label="Torna ai brani"><span class="icona">arrow_back</span></button>
+          <h1 class="appbar-titolo">Impostazioni</h1>
+        </div>
+        <div class="impostazione">
+          <div class="impostazione-testa">
+            <h2 id="durata-etichetta">Durata del mashup</h2>
+            <output for="durata">10 min</output>
+          </div>
+          <div class="cursore" id="durata" role="slider" tabindex="0" aria-labelledby="durata-etichetta"
+               aria-valuemin="3" aria-valuemax="30" aria-valuenow="10" aria-valuetext="10 minuti" style="--v: 25.9%">
+            <span class="cursore-pieno"></span><span class="cursore-maniglia"></span>
+          </div>
+          <div class="barra-tempi" style="margin-top: 0"><span>3 min</span><span>30 min</span></div>
+          <p>In "Canzoni intere" i brani possono durare fino al 20% in più (con 10 minuti: fino a 12:00) e vengono accorciati.
+            Oltre, l'app ti chiede di togliere qualche brano.</p>
+          <div><button class="btn btn-testo" disabled>Ripristina 10 minuti</button></div>
+        </div>
+      </div>
+    </template>
+  </section>
+</main>
+<script src="presentazione.js"></script>
+</body>
+</html>

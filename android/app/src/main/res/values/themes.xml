@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema della finestra prima che parta Compose: solo lo sfondo (token md-surface). -->
+    <style name="Theme.Imash" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/sfondo_finestra</item>
+    </style>
+</resources>
