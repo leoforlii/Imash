@@ -224,4 +224,31 @@ class MashupTest {
         assertEquals(0.2, r.rms(3.0, 7.0), 1e-3)
         assertTrue(abs(r.rms(0.0, 1.5)) < 1e-6)
     }
+
+    @Test
+    fun ilMixNonSuperaMaiIlLimite() {
+        // Caso peggiore per lo scambio dei bassi: onde quadre lente a piena ampiezza, in opposizione,
+        // più rumore; il limite deve valere per ogni campione di ogni tipo di transizione.
+        val rnd = java.util.Random(7)
+        val n = 25 * sr
+        val segnali = listOf(
+            FloatArray(n) { if ((it / 37) % 2 == 0) 1f else -1f },
+            FloatArray(n) { if ((it / 41) % 2 == 0) -0.8f else 0.8f },
+            FloatArray(n) { rnd.nextFloat() * 2 - 1 },
+        )
+        val sorgente = SorgenteBrani { i, max, r ->
+            val m = minOf(n.toLong(), max).toInt()
+            r.ricevi(arrayOf(segnali[i].copyOf(m), segnali[i].copyOf(m)), m)
+        }
+        val guadagni = floatArrayOf(1.3f, 0.9f, 1.1f)
+        val picchi = floatArrayOf(1f, 0.8f, segnali[2].maxOf { abs(it) })
+        val limite = MashupRenderer.limiteMix(guadagni, picchi)
+        for (tipo in listOf(TipoTransizione.ScambioBassi, TipoTransizione.MixATempo)) {
+            val piano = Piano(List(3) { Segmento(0.0, 20.0) }, doubleArrayOf(8.0, 8.0), listOf(tipo, tipo))
+            var massimo = 0f
+            MashupRenderer(piano, guadagni, sorgente, sr)
+                .renderizza({ b, k -> for (i in 0 until k) massimo = maxOf(massimo, abs(b[0][i])) })
+            assertTrue("$tipo: picco $massimo oltre il limite $limite", massimo <= limite)
+        }
+    }
 }

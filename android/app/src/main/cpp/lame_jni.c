@@ -16,7 +16,7 @@ JNIEXPORT jlong JNICALL FUNZ(nativeInit)(JNIEnv *env, jclass cls,
     lame_set_mode(l, canali == 1 ? MONO : JOINT_STEREO);
     lame_set_VBR(l, vbr_off);
     lame_set_brate(l, kbps);
-    lame_set_quality(l, 2);  // 2 = alta qualità, velocità accettabile
+    lame_set_quality(l, 5);  // 5 = predefinito di LAME: a 320 kbps non si sente la differenza dal 2, ~2× più veloce
     if (lame_init_params(l) < 0) {
         lame_close(l);
         return 0;

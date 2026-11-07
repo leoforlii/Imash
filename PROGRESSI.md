@@ -485,3 +485,92 @@ Registro di ogni attività svolta nel progetto, in ordine cronologico.
   l'indirizzo remoto ora contiene l'utente (`https://leoforlii@github.com/...`) e l'accesso è stato
   fatto dall'utente nel browser.
 - Stato del lavoro invariato: voce 29 in pausa (prova sull'emulatore delle nuove transizioni da rifare).
+
+### 31. Ripresa su un altro PC: progetto clonato e SDK completato
+- Il progetto è stato clonato da GitHub in `C:\Users\leona\Progetti\Imash`. Si tratta di un PC diverso da
+  quello della voce 10: Android Studio è presente, ma l'SDK aveva solo le piattaforme 34-36 e mancavano
+  NDK e CMake. L'emulatore disponibile è `Medium_Phone` (API 36.1).
+- ✅ Scaricati i **Command-line Tools** (`commandlinetools-win-16111833_latest.zip`, 155 MB, da
+  dl.google.com) e verificato lo SHA-1 `57d04f2d…5a63e9d` con l'indice ufficiale `repository2-3.xml`.
+  Installati in `Sdk\cmdline-tools\latest`.
+  Nota: ora `sdkmanager` passa al nuovo **Android CLI** (`android.exe sdk install`), che scrive i pacchetti
+  con `/` al posto di `;` (es. `ndk/30.0.16248370`).
+- ✅ Installati e verificati: **platforms/android-37.0**, **ndk/30.0.16248370**, **cmake/4.1.2**.
+- ✅ Ricreato `android/local.properties` (percorso dell'SDK), che è escluso da git.
+- Manca ancora la cartella `canzoni/` con i 3 brani di prova, anch'essa esclusa da git: la deve fornire
+  l'utente. Poi si riprende dalla voce 29 (compilazione, emulatore, prova delle transizioni).
+
+### 32. Prova delle transizioni (ripresa della voce 29)
+- L'utente ha fornito i 3 brani (cartella `Desktop\Canzoni`, gli stessi delle prove precedenti: 3:55, 3:33,
+  3:15), copiati in `canzoni/` (esclusa da git) e sull'emulatore in `Music/canzoni`.
+- Compilazione debug: **BUILD SUCCESSFUL** in 12 min 53 s; emulatore `Medium_Phone_API_36.1` avviato in 40 s
+  (questo PC: 16 core, 16 GB).
+- ✅ Mashup creato in **627 s** (debug, emulatore), durata **10:13**:
+  - brano 1 0:01→3:45, Fa# min · ↳ **Scambio dei bassi** (7,6 s)
+  - brano 2 0:01→3:32, Sib min · ↳ **Scambio dei bassi** (7,7 s)
+  - brano 3 0:00→3:13, Fa# min; tutti 123 BPM.
+  - ⚠️ Atteso nella voce 29: 1→2 Scambio dei bassi, 2→3 **Mix a tempo**. Le tonalità rilevate dall'app sono
+    diverse da quelle annotate nella voce 29 (Si min, La magg, Fa# min): da verificare dopo l'ascolto.
+- ✅ mp3 controllato: **23.493 frame, tutti 320 kbps / 44,1 kHz, 0 byte non validi, 613,7 s**.
+  Il controllo del livello nei passaggi non è stato fatto: su questo PC non c'è un decoder mp3 (né ffmpeg né librosa).
+- Inviato all'utente per l'ascolto (`canzoni/risultati/mashup_transizioni.mp3`).
+- Peso dell'app: debug **13,4 MB** (11,8 MB di codice Compose non ottimizzato), LAME 0,8 MB per 3 ABI, font 0,3 MB.
+
+### 33. Ottimizzazione dei tempi
+- Richiesta dell'utente: i tempi di attesa sono inaccettabili; proposta l'analisi in parallelo dei brani.
+- Causa trovata: ogni brano veniva **decodificato 3 volte** (analisi, ricerca del picco, codifica), in versione debug.
+- Proposte 6 ottimizzazioni, **approvate tutte** dall'utente. Applicate:
+  1. **Versione release** (R8): firmata provvisoriamente con la chiave di debug per poterla installare
+     (`signingConfig` in `build.gradle.kts`; chiave vera nella fase 6).
+  2. **Decodifica unica**: nuovo `audio/CachePcm.kt` (`ScrittorePcm` / `LettorePcm`, PCM 16 bit stereo in
+     `cache/lavoro/`). L'analisi salva il brano mentre lo analizza; il mix lo rilegge da lì.
+  3. **Un solo mix**: il mix va in cache a 16 bit, ridotto prima del limite massimo possibile
+     (`MashupRenderer.limiteMix`: somma dei due brani in transizione × 3,2 per lo scambio dei bassi) così non
+     viene mai tagliato; poi viene riletto, portato al picco 0,95 e codificato. La cartella `lavoro/` viene
+     cancellata alla fine, anche in caso di errore.
+  4. **Analisi in parallelo**: `GeneratoreMashup.analizzaInParallelo`, un brano per core, al massimo 4.
+     Verificato che le classi audio/DSP non abbiano stato condiviso modificabile.
+  6. **LAME qualità 5** invece di 2 (`lame_jni.c`).
+- ❌ Non applicata la 5 (**un solo spettrogramma** per battiti e croma): usano FFT diverse (2048/512 e
+  4096/1024); unificarle cambierebbe la risoluzione del croma e quindi tonalità e transizioni, proprio mentre
+  vanno verificate. Guadagno stimato piccolo rispetto alle altre.
+- ✅ Test unitari: **40/40 superati** (4 nuovi: andata e ritorno PCM 16 bit, scala e limite, lettura fino al
+  massimo, mix sempre sotto `limiteMix` con onde quadre, rumore, scambio dei bassi e mix a tempo).
+- ✅ Release: **BUILD SUCCESSFUL** in 4 min 51 s, APK **2,42 MB** (debug 13,4 MB).
+- ✅ Stesso mashup sull'emulatore con la release: **28 s invece di 627 s (circa 22× più veloce)**, piano
+  identico (tagli, BPM, tonalità, transizioni); mp3 di nuovo 23.493 frame a 320 kbps, 0 byte non validi.
+  Inviato all'utente (`canzoni/risultati/mashup_ottimizzato.mp3`).
+- Non verificato: lo svuotamento della cache sul dispositivo (la release non permette `run-as`); il codice
+  cancella `lavoro/` in un `finally`.
+- **Prossimi passi**: ascolto dell'utente (transizioni 2→3 e tonalità), poi conferma prima della fase 4
+  (Ritornelli). Se l'utente recupera dall'altro PC lavoro sulla fase 4 non caricato su GitHub, va scaricato prima.
+
+### 34. Fase 4: modalità Ritornelli
+- ✅ L'utente ha dato il via alla fase 4. Nota: l'utente pensava che la fase 4 fosse già fatta; su GitHub non c'è
+  traccia (nessun codice, ultima voce la 30). Se sull'altro PC c'è lavoro non caricato, va confrontato con questo.
+- Prima di scrivere: riusati `Croma` (con n_fft 16384, come pychorus), `Stft`, il mono a 22050 Hz già calcolato
+  per i battiti e il pianificatore, che prevedeva già il limite dei 60 s per i ritornelli.
+- ✅ Nuovo `dsp/RilevatoreRitornello.kt`, porting di `pychorus` 0.1 come lo usa `trova_ritornello`:
+  matrici tempo-tempo e tempo-ritardo, `denoise` (medie mobili con somme scorrevoli, filtro gaussiano con bordi
+  "reflect" di scipy), righe di massimo locale, segmenti sopra soglia (0,15, abbassata del 5% fino a 8 volte),
+  punteggio per sovrapposizione, miglior segmento. Mantenuto il comportamento originale di `detect_lines_helper`
+  (inizio del segmento non azzerato fra le righe). Più `segmentoPiuForte` (20 s di energia massima).
+  Memoria: ~2 matrici N×N float (N ≈ 5,4 frame/s; ~14 MB per un brano di 4 min).
+- ✅ `AnalizzatoreBrano(cercaRitornello)`: come `processa` di estrai_ritornelli.py: ripetizione di almeno 30 s,
+  poi di 10 s, altrimenti energia; finestra di 60 s, spostata indietro se il brano finisce prima.
+  Differenza: croma con intonazione 0 (librosa la stima), come già per la tonalità.
+- ✅ `GeneratoreMashup(modalita)`: nuova `Modalita` (CanzoniIntere, Ritornelli); per i Ritornelli il tratto parte
+  dalla **misura più vicina** all'inizio del ritornello (`tratto`), così il brano resta sul battere. Stessa regola
+  delle Canzoni intere: fino al +20% si accorcia sulle misure, oltre "Troppe canzoni".
+- Pannello di prova provvisorio: scelta "Canzoni intere" / "Ritornelli" e, nel riepilogo, ritornello e metodo.
+- ✅ Test unitari: **44/44 superati** (4 nuovi: ritornello di 40 s ripetuto 3 volte fra strofe diverse,
+  ripiego sull'energia, bordi "reflect", tratto sulla misura più vicina). Release: BUILD SUCCESSFUL in 2 min 27 s.
+- ✅ Prova sull'emulatore (release) con i 3 brani, modalità Ritornelli: **27 s**, durata **2:41** ("brani troppo
+  corti": 3 ritornelli da 60 s non arrivano a 10 minuti, comportamento previsto):
+  - brano 1: ritornello 1:34→2:34 (ripetizione), usato 1:33→2:32 · ↳ Scambio dei bassi (7,6 s)
+  - brano 2: ritornello 2:16→3:16 (ripetizione), usato 2:15→3:15 · ↳ Scambio dei bassi (7,7 s)
+  - brano 3: ritornello 2:15→3:15 (ripetizione, finestra spostata alla fine), usato 2:15→3:13
+  - mp3: **6.196 frame, tutti 320 kbps / 44,1 kHz, 0 byte non validi, 161,9 s**. Inviato all'utente
+    (`canzoni/risultati/mashup_ritornelli.mp3`).
+- Non verificato: confronto con lo script Python originale (su questo PC mancano librosa e pychorus).
+- **Prossimo passo**: ascolto dell'utente; poi, con conferma, la fase 5 (interfaccia completa).

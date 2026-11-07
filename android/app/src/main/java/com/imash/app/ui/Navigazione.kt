@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.imash.app.mashup.GeneratoreMashup
+import com.imash.app.mashup.MetodoRitornello
+import com.imash.app.mashup.Modalita
 import com.imash.app.mashup.RisultatoMashup
 import com.imash.app.data.Archivio
 import kotlinx.coroutines.Dispatchers
@@ -129,8 +132,9 @@ private fun SchermataSegnaposto(
 private fun ProvaMashup() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var stato by remember { mutableStateOf("Prova fase 3: scegli almeno 2 brani") }
+    var stato by remember { mutableStateOf("Prova fasi 3-4: scegli la modalità e almeno 2 brani") }
     var pronto by remember { mutableStateOf(false) }
+    var modalita by remember { mutableStateOf(Modalita.CanzoniIntere) }
     val temporaneo = remember { Archivio.fileTemporaneo(context) }
 
     val salva = rememberLauncherForActivityResult(
@@ -148,7 +152,7 @@ private fun ProvaMashup() {
             val inizio = System.currentTimeMillis()
             stato = runCatching {
                 withContext(Dispatchers.Default) {
-                    GeneratoreMashup(context, uris).genera(GeneratoreMashup.DURATA_PREDEFINITA, temporaneo) { fase, i ->
+                    GeneratoreMashup(context, uris, modalita).genera(GeneratoreMashup.DURATA_PREDEFINITA, temporaneo) { fase, i ->
                         stato = "${fase.name}: brano ${i + 1} di ${uris.size}…"
                     }
                 }
@@ -167,6 +171,10 @@ private fun ProvaMashup() {
                                     val a = risultato.analisi[i]
                                     append("\n${i + 1}. ${minSec(s.inizio)} → ${minSec(s.inizio + s.durata)}")
                                     append(" di ${minSec(a.durata)}, ${"%.0f".format(a.bpm)} BPM, ${a.tonalita ?: "?"}")
+                                    a.ritornello?.let { r ->
+                                        val come = if (r.metodo == MetodoRitornello.Ripetizione) "ripetizione" else "energia"
+                                        append("\n   ritornello ${minSec(r.inizio)} → ${minSec(r.fine)} ($come)")
+                                    }
                                     if (i < risultato.piano.dissolvenze.size) {
                                         append("\n   ↳ ${risultato.piano.transizioni[i].nome}")
                                         append(" (${"%.1f".format(risultato.piano.dissolvenze[i])} s)")
@@ -181,6 +189,18 @@ private fun ProvaMashup() {
         }
     }
 
+    Row(horizontalArrangement = Arrangement.spacedBy(Spaziature.sp2)) {
+        FilterChip(
+            selected = modalita == Modalita.CanzoniIntere,
+            onClick = { modalita = Modalita.CanzoniIntere },
+            label = { Text("Canzoni intere") },
+        )
+        FilterChip(
+            selected = modalita == Modalita.Ritornelli,
+            onClick = { modalita = Modalita.Ritornelli },
+            label = { Text("Ritornelli") },
+        )
+    }
     Text(stato, style = MaterialTheme.typography.bodyMedium)
     Row(horizontalArrangement = Arrangement.spacedBy(Spaziature.sp2)) {
         Button(onClick = { scegli.launch(Archivio.TIPI_INGRESSO) }) { Text("Scegli mp3") }

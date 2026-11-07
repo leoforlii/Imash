@@ -4,6 +4,7 @@ import com.imash.app.audio.RicevitorePcm
 import com.imash.app.audio.Resampler
 import com.imash.app.dsp.BeatTracker
 import com.imash.app.dsp.Croma
+import com.imash.app.dsp.RilevatoreRitornello
 import com.imash.app.dsp.Tonalita
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -30,6 +31,8 @@ class AnalisiBrano(
     val tonalita: Tonalita?,
     private val energia: FloatArray,
     private val secondiPerBlocco: Double,
+    /** Finestra di 60 s dal ritornello; solo nella modalità Ritornelli, altrimenti null. */
+    val ritornello: Ritornello? = null,
 ) {
     /** RMS stereo del tratto [da, a), come `np.sqrt(np.mean(y ** 2))` in `normalizza_rms`. */
     fun rms(da: Double, a: Double): Double {
@@ -42,13 +45,23 @@ class AnalisiBrano(
     }
 }
 
+/** Come è stato trovato il ritornello (la colonna "metodo" di estrai_ritornelli.py). */
+enum class MetodoRitornello { Ripetizione, Energia }
+
+/** Finestra del ritornello [inizio, fine) in secondi, al massimo [RilevatoreRitornello.MAX_CLIP_SEC]. */
+class Ritornello(val inizio: Double, val fine: Double, val metodo: MetodoRitornello)
+
 /**
  * Analizza un brano letto a flusso a [srUscita] Hz stereo (lo stesso formato del mashup):
  * - energia per blocchi → taglio del silenzio e RMS di qualunque tratto;
- * - mono ricampionato a [SR_ANALISI] Hz → battiti con [BeatTracker] (come mashup.py).
+ * - mono ricampionato a [SR_ANALISI] Hz → battiti con [BeatTracker] (come mashup.py);
+ * - con [cercaRitornello], sullo stesso mono, il ritornello come `processa` di estrai_ritornelli.py.
  * Non dipende da Android: riceve i blocchi con [ricevi] e restituisce il risultato con [concludi].
  */
-class AnalizzatoreBrano(private val srUscita: Int) : RicevitorePcm {
+class AnalizzatoreBrano(
+    private val srUscita: Int,
+    private val cercaRitornello: Boolean = false,
+) : RicevitorePcm {
 
     private var energia = FloatArray(1024)
     private var blocchi = 0
@@ -118,7 +131,30 @@ class AnalizzatoreBrano(private val srUscita: Int) : RicevitorePcm {
             val battere = DoubleArray((tempi.size - fase + 3) / 4) { tempi[fase + it * 4] }
             grigliaMisure(battere, 4 * mediana, inizioSuono) to mediana
         }
-        return AnalisiBrano(durata, inizioSuono, fineSuono, misure, spb, battiti.bpm, tonalita, e, secPerBlocco)
+        val ritornello = if (cercaRitornello) trovaRitornello(y) else null
+        return AnalisiBrano(
+            durata, inizioSuono, fineSuono, misure, spb, battiti.bpm, tonalita, e, secPerBlocco, ritornello,
+        )
+    }
+
+    /**
+     * `processa` di estrai_ritornelli.py: ritornello di almeno 30 s, poi di almeno 10 s, altrimenti
+     * i 20 s più forti; finestra di 60 s da lì, spostata indietro se il brano finisce prima.
+     */
+    private fun trovaRitornello(y: FloatArray): Ritornello {
+        val durata = y.size.toDouble() / SR_ANALISI
+        val croma = Croma(SR_ANALISI, RilevatoreRitornello.N_FFT).calcola(y)
+        val trovato = RilevatoreRitornello.trova(croma, durata, RITORNELLO_MIN_SEC)
+            ?: RilevatoreRitornello.trova(croma, durata, RITORNELLO_RIPIEGO_SEC)
+        val metodo = if (trovato != null) MetodoRitornello.Ripetizione else MetodoRitornello.Energia
+        var inizio = (trovato ?: RilevatoreRitornello.segmentoPiuForte(y, SR_ANALISI)).inizio
+        val lunghezza = RilevatoreRitornello.MAX_CLIP_SEC
+        var fine = minOf(inizio + lunghezza, durata)
+        if (fine - inizio < lunghezza && durata > lunghezza) {
+            inizio = durata - lunghezza
+            fine = durata
+        }
+        return Ritornello(inizio, fine, metodo)
     }
 
     companion object {
@@ -127,6 +163,8 @@ class AnalizzatoreBrano(private val srUscita: Int) : RicevitorePcm {
         const val SILENZIO_DB = 50.0
         const val MIN_BATTITI = 16         // come `if len(beat_times) < 16` in mashup.py
         const val CROMA_N_FFT = 4096       // ~5 Hz per bin a 22050 Hz, hop 1024 (~46 ms)
+        const val RITORNELLO_MIN_SEC = 30.0     // MIN_CLIP_SEC di estrai_ritornelli.py
+        const val RITORNELLO_RIPIEGO_SEC = 10.0
     }
 }
 

@@ -7,7 +7,7 @@ import kotlin.math.cos
 import kotlin.math.roundToLong
 import kotlin.math.sin
 
-/** Legge il brano [indice] a 44,1 kHz stereo, fermandosi dopo [maxCampioni]. */
+/** Legge il brano [indice] a 44,1 kHz stereo (nell'app: dalla cache PCM), fermandosi dopo [maxCampioni]. */
 fun interface SorgenteBrani {
     fun leggi(indice: Int, maxCampioni: Long, ricevitore: RicevitorePcm)
 }
@@ -20,7 +20,7 @@ fun interface SorgenteBrani {
  * - Scambio dei bassi: gli alti fanno la dissolvenza equal-power, i bassi (sotto [FREQ_BASSI])
  *   passano dal brano uscente all'entrante in un battito, a metà della transizione.
  * Si tiene in memoria solo la coda del brano precedente (al massimo ~20 s).
- * La normalizzazione finale del picco si fa chiamando [renderizza] due volte (vedi [GeneratoreMashup]).
+ * La normalizzazione finale del picco si fa sul mix salvato nella cache (vedi [GeneratoreMashup]).
  */
 class MashupRenderer(
     private val piano: Piano,
@@ -143,5 +143,21 @@ class MashupRenderer(
         private const val BLOCCO = 4096
 
         fun guadagno(rms: Double): Float = (RMS_OBIETTIVO / (rms + 1e-9)).toFloat()
+
+        /**
+         * Valore assoluto che il mix non può superare, dati i [guadagni] e i [picchi] dei brani.
+         * In una transizione si sommano due brani (seno e coseno ≤ 1). Con lo scambio dei bassi
+         * ogni brano dà (x - b)·c + b·(1 - q), con |b| ≤ 1,1·max|x| (norma L1 della risposta
+         * all'impulso del Butterworth): al massimo (1 + 2·1,1)·max|x| = 3,2·max|x|, da qui [MARGINE_FILTRO].
+         * Il limite è largo (si perdono 2-3 bit sui 16), ma garantisce che il mix non venga tagliato.
+         */
+        fun limiteMix(guadagni: FloatArray, picchi: FloatArray): Float {
+            val livelli = FloatArray(guadagni.size) { guadagni[it] * picchi[it] }
+            var limite = livelli.maxOrNull() ?: 0f
+            for (i in 0 until livelli.size - 1) limite = maxOf(limite, livelli[i] + livelli[i + 1])
+            return maxOf(limite * MARGINE_FILTRO, 1e-6f)
+        }
+
+        private const val MARGINE_FILTRO = 3.2f
     }
 }
