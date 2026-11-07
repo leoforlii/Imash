@@ -167,7 +167,7 @@ fun SchermataBrani(
             }
             itemsIndexed(brani, key = { _, b -> chiave(b) }) { i, brano ->
                 ReorderableItem(riordino, key = chiave(brano)) { trascinato ->
-                    RigaBrano(i, brano, trascinato, { stato.togli(brano) }, Modifier.draggableHandle())
+                    RigaBrano(i, brano, trascinato, { stato.togli(brano) }, modifier = Modifier.draggableHandle())
                 }
             }
             item(key = "aggiungi") {
@@ -315,7 +315,8 @@ private fun RigaBrano(
     brano: BranoScelto,
     trascinato: Boolean,
     togli: () -> Unit,
-    maniglia: Modifier,
+    /** Applicato alla maniglia: è da lì che si trascina la riga. */
+    modifier: Modifier = Modifier,
 ) {
     val colori = LocalColoriBrani.current
     Surface(
@@ -331,7 +332,7 @@ private fun RigaBrano(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spaziature.sp3),
         ) {
-            Box(maniglia.size(40.dp, 48.dp), contentAlignment = Alignment.Center) {
+            Box(modifier.size(40.dp, 48.dp), contentAlignment = Alignment.Center) {
                 Icon(
                     painterResource(R.drawable.ic_trascina),
                     contentDescription = "Trascina ${brano.nome}",

@@ -18,7 +18,7 @@ data class Transizione(val tipo: TipoTransizione, val misure: Int)
 
 /**
  * Sceglie la transizione per ogni coppia di brani consecutivi in base a tempo e tonalità.
- * Nella fase 5 l'utente potrà cambiare la scelta: il pianificatore riceve solo la lista.
+ * L'utente può cambiarla nella schermata del risultato ([conTipo]): il pianificatore riceve solo la lista.
  */
 object SceltaTransizione {
 
@@ -46,4 +46,22 @@ object SceltaTransizione {
     }
 
     fun scegliTutte(analisi: List<AnalisiBrano>): List<Transizione> = analisi.zipWithNext(::scegli)
+
+    /** Si può scegliere fra Mix a tempo e Scambio dei bassi solo se entrambi i brani hanno i battiti. */
+    fun modificabile(uscente: AnalisiBrano, entrante: AnalisiBrano) = uscente.spb != null && entrante.spb != null
+
+    /**
+     * Transizione di tipo [tipo] scelto dall'utente. Il Mix a tempo usa 8 misure se restano entro
+     * [MIX_MASSIMO_SEC], altrimenti 4 (anche se i tempi non sono abbastanza vicini: l'ha voluto l'utente).
+     * Senza battiti resta la dissolvenza.
+     */
+    fun conTipo(uscente: AnalisiBrano, entrante: AnalisiBrano, tipo: TipoTransizione): Transizione {
+        val sa = uscente.spb
+        if (!modificabile(uscente, entrante) || sa == null) return Transizione(TipoTransizione.Dissolvenza, 2)
+        return when (tipo) {
+            TipoTransizione.MixATempo -> Transizione(tipo, MISURE_MIX.firstOrNull { 4 * it * sa <= MIX_MASSIMO_SEC } ?: MISURE_MIX.last())
+            TipoTransizione.ScambioBassi -> Transizione(tipo, MISURE_SCAMBIO)
+            TipoTransizione.Dissolvenza -> Transizione(tipo, 2)
+        }
+    }
 }

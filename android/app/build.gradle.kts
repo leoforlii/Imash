@@ -31,6 +31,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
             // Provvisorio: firma di debug, per installare la release su emulatore/telefoni di prova.
             // Nella fase 6 si crea una chiave vera per l'app distribuita.

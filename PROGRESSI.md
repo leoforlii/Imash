@@ -660,4 +660,51 @@ Registro di ogni attività svolta nel progetto, in ordine cronologico.
   essere affidabili. Nella prova da 429 s il thread dell'interfaccia ha usato 70 s di CPU su 513 totali
   (indicatori animati disegnati in software dall'emulatore). Da misurare su un telefono vero (fase 6); se serve,
   si riducono le animazioni durante l'elaborazione.
-- **Prossimo passo**: conferma dell'utente, poi il passo 4 (Risultato con lettore e transizioni modificabili).
+- ✅ L'utente ha confermato il passo 3 e ha chiesto di salvare tutto su GitHub: commit `cd75b63` sul ramo `altro-pc`.
+
+### 38. Fase 5, passo 4: Risultato con lettore e transizioni modificabili
+- ✅ `GeneratoreMashup`: i file intermedi (brani decodificati) e l'analisi restano finché non si chiama
+  `pulisci()`; `genera(…, scelte)` la seconda volta rifà solo piano, mix e codifica con le transizioni scelte.
+  `SceltaTransizione.modificabile` (servono i battiti di entrambi i brani) e `conTipo` (Mix a tempo su 8 misure
+  se restano entro 20 s, altrimenti 4; Scambio dei bassi su 4).
+- ✅ `Elaborazione.ricomponi(passaggio, tipo)`: il servizio ricrea il mashup in un file a parte e lo sostituisce
+  solo se riesce (altrimenti resta quello di prima e la scelta torna indietro, con un messaggio). Stato:
+  `ricomposizione` (avanzamento), `salvato`, `messaggio`. `chiudi(context)` cancella file intermedi e mp3
+  temporaneo (punto della fase 5 "cancellare l'mp3 temporaneo").
+- ✅ `ui/Lettore.kt` (MediaPlayer sull'mp3 temporaneo) e `ui/SchermataRisultato.kt` (design 3): durata grande,
+  "N canzoni unite / ritornelli uniti", barra-lettore con testina (tocco e trascinamento per spostarsi:
+  `BarraMashup` ha ora `testina` e `sposta`), tempi, −10 s / play-pausa (72 dp) / +10 s, elenco "Nel mashup"
+  con "da m:ss" e "in ascolto" (tocco = salta lì), fra un brano e l'altro la transizione con il menu
+  Mix a tempo / Scambio dei bassi (senza battiti: "Dissolvenza, senza battiti", non modificabile), riquadro
+  "Aggiorno il mashup…" con avanzamento e Annulla, "Salva mp3" e "Nuovo mashup". Uscendo senza aver salvato
+  chiede conferma ("Uscire senza salvare?" – Resta / Esci). Tolto il risultato provvisorio da `Navigazione.kt`.
+- 6 icone in più (replay_10, forward_10, play, pause, save, expand_more). Test: **52/52** (3 nuovi in
+  `SceltaUtenteTest`: conTipo con 8 o 4 misure, senza battiti, inizi dei brani nel mashup).
+- ✅ Prova sull'emulatore: mashup in 45 s (analisi 34 s, taglio 2 s, unione 10 s); tocco sul brano 2 → 3:36 e
+  play ("in ascolto"); primo passaggio cambiato in Mix a tempo (15,2 s) → ricreato in ~12 s senza rifare
+  l'analisi, durata 10:06; "Salva mp3" → file valido (23.202 frame a 320 kbps, 606,1 s), inviato all'utente
+  (`canzoni/risultati/mashup_mix_a_tempo.mp3`); secondo passaggio in Mix a tempo → 9:58, poi Indietro →
+  conferma → Esci → schermata dei brani, servizio fermato.
+- Domanda dell'utente sulla velocità (taglio in parallelo, unione in un solo file): l'unione produce già un
+  solo file; con i tempi misurati (analisi ~79%, taglio ~4%, unione ~17%) il taglio in parallelo non conviene,
+  l'unione in parallelo a pezzi (LAME senza bit reservoir) farebbe risparmiare forse 7-8 s su 65; il grosso è
+  l'analisi, da misurare su telefono. Proposto dopo il passo 4, in attesa di conferma.
+- ✅ L'utente ha scelto di fare prima il passo 5 (rifiniture).
+
+### 39. Fase 5, passo 5: rifiniture
+- ✅ Icone della barra di stato in tema scuro (voce 26): verificato con avvio a freddo in tema scuro, sono chiare;
+  già risolto da `enableEdgeToEdge` + tema della finestra in `values-night`. Nessuna modifica necessaria.
+- ✅ Pulizia all'avvio (`Archivio.pulisciAvanzi`, chiamata da `MainActivity` se non c'è un mashup in corso):
+  cancella file intermedi e mp3 temporanei lasciati da un'elaborazione interrotta (app chiusa dal sistema) e
+  rilascia i permessi sui brani della volta prima (la lista riparte vuota). Il nome della cartella è in un solo
+  punto: `GeneratoreMashup.cartellaLavoro`.
+- ✅ Lint di Android: 5 avvisi, tutti risolti → **0 avvisi**:
+  - `ModifierParameter`: parametro della maniglia rinominato `modifier` in `RigaBrano`;
+  - `DataExtractionRules`: `res/xml/estrazione_dati.xml` (niente backup né trasferimento) e
+    `res/xml/backup_completo.xml` (`fullBackupContent`) per Android < 12 (resta `allowBackup="false"`);
+  - `StaticFieldLeak` su `Elaborazione.generatore`: falso allarme (solo application context), annotato;
+  - `NotShrinkingResources`: `isShrinkResources = true` in release → APK da 2,78 a **2,48 MB**.
+- ✅ Test 52/52. Prova sull'emulatore in tema scuro, modalità Ritornelli: 39 s, stesso risultato della voce 34
+  (2:41, brani da 0:51 e 1:43, due Scambio dei bassi), "3 ritornelli uniti: i brani non bastano per 10:00".
+- **Fase 5 completata.** Restano da decidere: ottimizzazioni di velocità (unione in parallelo, analisi) e la
+  fase 6 (telefono vero, prestazioni in release, scansione di sicurezza, chiave di firma vera, togliere x86_64).

@@ -19,7 +19,6 @@ import com.imash.app.MainActivity
 import com.imash.app.R
 import com.imash.app.data.Archivio
 import com.imash.app.mashup.Fase
-import com.imash.app.mashup.GeneratoreMashup
 import com.imash.app.mashup.RisultatoMashup
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -27,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.io.File
 import kotlin.math.roundToInt
 
 /**
@@ -44,7 +44,9 @@ class ServizioMashup : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val stato = Elaborazione.stato.value
-        if (stato == null || !stato.inCorso || Elaborazione.lavoro?.isActive == true) {
+        val generatore = Elaborazione.generatore
+        val ricomponi = stato?.ricomposizione != null
+        if (stato == null || generatore == null || !(stato.inCorso || ricomponi) || Elaborazione.lavoro?.isActive == true) {
             if (Elaborazione.lavoro?.isActive != true) stopSelf()
             return START_NOT_STICKY
         }
@@ -63,10 +65,11 @@ class ServizioMashup : Service() {
             .apply { acquire(MAX_DURATA_MS) }
 
         Elaborazione.lavoro = scope.launch {
-            val uscita = Archivio.fileTemporaneo(this@ServizioMashup)
+            val mp3 = Archivio.fileTemporaneo(this@ServizioMashup)
+            // Ricomponendo si scrive a parte: se non riesce resta il mashup di prima.
+            val uscita = if (ricomponi) File(mp3.parentFile, "mashup_nuovo.mp3") else mp3
             val esito = try {
-                when (val r = GeneratoreMashup(this@ServizioMashup, Elaborazione.uris, stato.modalita)
-                    .genera(Elaborazione.durataObiettivo, uscita) { passo ->
+                when (val r = generatore.genera(Elaborazione.durataObiettivo, uscita, Elaborazione.scelte) { passo ->
                         Elaborazione.aggiorna { it.applica(passo) }
                         registraFase()
                         aggiornaNotifica()
@@ -80,15 +83,39 @@ class ServizioMashup : Service() {
                 Log.e("Imash", "Mashup fallito", e)
                 Esito.Errore(e.message ?: e.javaClass.simpleName)
             }
-            if (esito !is Esito.Pronto) uscita.delete()
-            Elaborazione.aggiorna { it.concluso(esito) }
+            if (ricomponi) concludiRicomposizione(esito, uscita, mp3)
+            else {
+                if (esito !is Esito.Pronto) {
+                    uscita.delete()
+                    generatore.pulisci()
+                }
+                Elaborazione.aggiorna { it.concluso(esito) }
+                notificaEsito(esito)
+            }
             Log.i("Imash", "Fine ($esito) dopo ${System.currentTimeMillis() - stato.inizio} ms")
-            notificaEsito(esito)
             rilasciaWakeLock()
             ServiceCompat.stopForeground(this@ServizioMashup, ServiceCompat.STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
         return START_NOT_STICKY
+    }
+
+    private fun concludiRicomposizione(esito: Esito, nuovo: File, mp3: File) {
+        if (esito is Esito.Pronto && nuovo.renameTo(mp3.also { it.delete() })) {
+            Elaborazione.aggiorna { it.copy(esito = esito, ricomposizione = null, salvato = false, messaggio = "Mashup aggiornato") }
+            return
+        }
+        nuovo.delete()
+        val testo = when (esito) {
+            is Esito.TroppeCanzoni -> "Con questa transizione i brani superano il massimo: resta quella di prima"
+            Esito.Annullato -> "Modifica annullata: resta il mashup di prima"
+            else -> "Modifica non riuscita: resta il mashup di prima"
+        }
+        // Torna la scelta che corrisponde al mashup rimasto.
+        (Elaborazione.stato.value?.esito as? Esito.Pronto)?.let { pronto ->
+            Elaborazione.scelte = pronto.risultato.piano.transizioni.map { it }
+        }
+        Elaborazione.aggiorna { it.copy(ricomposizione = null, messaggio = testo) }
     }
 
     /** Android 15+: il servizio "mediaProcessing" ha un tempo massimo; se lo supera si interrompe. */
@@ -127,11 +154,11 @@ class ServizioMashup : Service() {
     )
 
     private fun notificaAvanzamento(s: StatoElaborazione): Notification {
-        val percentuale = (s.frazione * 100).roundToInt()
+        val percentuale = (avanzamento(s) * 100).roundToInt()
         return NotificationCompat.Builder(this, CANALE_AVANZAMENTO)
             .setSmallIcon(R.drawable.ic_crea)
-            .setContentTitle("Sto creando il mashup")
-            .setContentText("Brano ${s.corrente + 1} di ${s.nomi.size} · $percentuale%")
+            .setContentTitle(if (s.ricomposizione != null) "Aggiorno il mashup" else "Sto creando il mashup")
+            .setContentText(if (s.ricomposizione != null) "$percentuale%" else "Brano ${s.corrente + 1} di ${s.nomi.size} · $percentuale%")
             .setProgress(100, percentuale, false)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -154,7 +181,7 @@ class ServizioMashup : Service() {
     private fun aggiornaNotifica() {
         val s = Elaborazione.stato.value ?: return
         val adesso = System.currentTimeMillis()
-        val percentuale = (s.frazione * 100).roundToInt()
+        val percentuale = (avanzamento(s) * 100).roundToInt()
         if (adesso - ultimaNotifica < 500 || percentuale == ultimaPercentuale) return
         ultimaNotifica = adesso
         ultimaPercentuale = percentuale
@@ -183,6 +210,8 @@ class ServizioMashup : Service() {
                 .build(),
         )
     }
+
+    private fun avanzamento(s: StatoElaborazione) = s.ricomposizione ?: s.frazione
 
     companion object {
         private const val CANALE_AVANZAMENTO = "avanzamento"

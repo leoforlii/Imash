@@ -10,6 +10,8 @@
 
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/estrazione_dati"
+        android:fullBackupContent="@xml/backup_completo"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"

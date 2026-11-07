@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -58,6 +59,7 @@ import kotlin.math.roundToInt
 /** Schermata 2 del design: avanzamento brano per brano, con le fasi Analisi, Taglio, Unione. */
 @Composable
 fun SchermataElaborazione(pronto: () -> Unit, tornaAiBrani: () -> Unit) {
+    val context = LocalContext.current
     val stato by Elaborazione.stato.collectAsStateWithLifecycle()
     val s = stato
     var conferma by remember { mutableStateOf(false) }
@@ -66,7 +68,7 @@ fun SchermataElaborazione(pronto: () -> Unit, tornaAiBrani: () -> Unit) {
         when (s?.esito) {
             null -> if (s == null) tornaAiBrani()
             is Esito.Pronto -> pronto()
-            Esito.Annullato -> { Elaborazione.chiudi(); tornaAiBrani() }
+            Esito.Annullato -> { Elaborazione.chiudi(context); tornaAiBrani() }
             else -> Unit
         }
     }
@@ -94,7 +96,7 @@ fun SchermataElaborazione(pronto: () -> Unit, tornaAiBrani: () -> Unit) {
                 if (s.inCorso) {
                     OutlinedButton(onClick = { conferma = true }, modifier = modifier) { Text("Annulla") }
                 } else {
-                    Button(onClick = { Elaborazione.chiudi(); tornaAiBrani() }, modifier = modifier) { Text("Torna ai brani") }
+                    Button(onClick = { Elaborazione.chiudi(context); tornaAiBrani() }, modifier = modifier) { Text("Torna ai brani") }
                 }
             }
         },

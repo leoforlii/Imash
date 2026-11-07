@@ -45,8 +45,8 @@ sealed interface RisultatoMashup {
 
 /**
  * Crea il mashup dai brani [brani], nell'ordine dato, in [uscita] (mp3), nella [modalita] scelta.
- * Ogni brano viene decodificato una sola volta; i file intermedi stanno nella cache e vengono
- * cancellati alla fine.
+ * Ogni brano viene decodificato una sola volta; i file intermedi stanno nella cache finché non si
+ * chiama [pulisci], così si può ricomporre il mashup con altre transizioni senza rifare l'analisi.
  * 1. Analisi (silenzio, volume, battiti, tonalità e, per i Ritornelli, il ritornello) di più brani
  *    in parallelo; intanto ogni brano viene salvato come PCM 16 bit nella cache.
  * 2. Transizione per ogni coppia con [SceltaTransizione], piano delle durate con [DurationPlanner].
@@ -60,31 +60,52 @@ class GeneratoreMashup(
     private val modalita: Modalita = Modalita.CanzoniIntere,
 ) {
 
+    private val lavoro = cartellaLavoro(context)
+    private val pcm = List(brani.size) { File(lavoro, "brano$it.pcm") }
+    private var analizzati: Pair<List<AnalisiBrano>, FloatArray>? = null
+
+    /**
+     * Crea il mashup. La prima volta analizza i brani; le volte successive riusa l'analisi e i
+     * brani già decodificati e rifà solo pianificazione, mix e codifica, con le transizioni
+     * [scelte] dall'utente (null = scelta automatica).
+     */
     suspend fun genera(
         durataObiettivo: Double,
         uscita: File,
+        scelte: List<TipoTransizione?> = emptyList(),
         avanzamento: (Passo) -> Unit,
     ): RisultatoMashup {
-        val lavoro = File(context.cacheDir, "lavoro").apply { deleteRecursively(); mkdirs() }
-        try {
-            return genera(durataObiettivo, uscita, lavoro, avanzamento)
-        } finally {
+        val (analisi, picchi) = analizzati ?: try {
             lavoro.deleteRecursively()
+            lavoro.mkdirs()
+            analizzaInParallelo(pcm, avanzamento).also { analizzati = it }
+        } catch (e: Throwable) {
+            pulisci()
+            throw e
         }
+        return componi(analisi, picchi, durataObiettivo, uscita, scelte, avanzamento)
     }
 
-    private suspend fun genera(
+    /** Cancella i file intermedi: dopo, [genera] rifà l'analisi. */
+    fun pulisci() {
+        lavoro.deleteRecursively()
+        analizzati = null
+    }
+
+    private suspend fun componi(
+        analisi: List<AnalisiBrano>,
+        picchi: FloatArray,
         durataObiettivo: Double,
         uscita: File,
-        lavoro: File,
+        scelte: List<TipoTransizione?>,
         avanzamento: (Passo) -> Unit,
     ): RisultatoMashup {
         val contesto = currentCoroutineContext()
-        val pcm = List(brani.size) { File(lavoro, "brano$it.pcm") }
-        val (analisi, picchi) = analizzaInParallelo(pcm, avanzamento)
-
         val daPianificare = analisi.map(::daPianificare)
-        val transizioni = SceltaTransizione.scegliTutte(analisi)
+        val transizioni = SceltaTransizione.scegliTutte(analisi).mapIndexed { i, t ->
+            val tipo = scelte.getOrNull(i)
+            if (tipo == null || tipo == t.tipo) t else SceltaTransizione.conTipo(analisi[i], analisi[i + 1], tipo)
+        }
         val piano = when (val esito = DurationPlanner.pianifica(daPianificare, transizioni, durataObiettivo)) {
             is EsitoPiano.TroppeCanzoni -> return RisultatoMashup.TroppeCanzoni(esito.totale, esito.massimo)
             is EsitoPiano.Ok -> esito
@@ -109,7 +130,6 @@ class GeneratoreMashup(
         val scrittore = ScrittorePcm(mix, riduzione)
         scrittore.use { renderer.renderizza(it) { b -> avanzamento(Passo.Taglio(b)) } }
         if (scrittore.saturati > 0) Log.w("Imash", "Mix: ${scrittore.saturati} campioni limitati a ±1")
-        pcm.forEach { it.delete() }
 
         val scala = if (scrittore.picco > 0f) MashupRenderer.PICCO / scrittore.picco else 1f
         val totale = renderer.campioniTotali
@@ -127,6 +147,7 @@ class GeneratoreMashup(
                 }
             }
         }
+        mix.delete()
         return RisultatoMashup.Creato(piano.piano, analisi, piano.piuCorto)
     }
 
@@ -171,6 +192,9 @@ class GeneratoreMashup(
     }
 
     companion object {
+        /** Cartella dei file intermedi nella cache dell'app. */
+        fun cartellaLavoro(context: Context) = File(context.cacheDir, "lavoro")
+
         const val SR = 44_100              // SR di mashup.py
 
         /** Brani analizzati insieme: uno per core, al massimo 4 per non esaurire la memoria. */

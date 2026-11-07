@@ -44,6 +44,12 @@ data class StatoElaborazione(
     /** Frazione già codificata in mp3 (-1 = non ancora iniziata). */
     val unione: Double = -1.0,
     val esito: Esito? = null,
+    /** Mentre si ricompone il mashup con un'altra transizione: avanzamento da 0 a 1, altrimenti null. */
+    val ricomposizione: Double? = null,
+    /** Il mashup attuale è stato salvato con "Salva mp3". */
+    val salvato: Boolean = false,
+    /** Messaggio da mostrare una volta (per es. ricomposizione non riuscita), poi azzerato. */
+    val messaggio: String? = null,
 ) {
     val inCorso: Boolean get() = esito == null
 
@@ -87,7 +93,7 @@ data class StatoElaborazione(
                 ritornelloNonTrovato = passo.analisi.ritornello?.metodo == MetodoRitornello.Energia,
             )
         }
-        is Passo.Pianificato -> {
+        is Passo.Pianificato -> if (ricomposizione != null) this else {
             val p = passo.piano
             var fine = 0.0
             val confini = p.segmenti.indices.map { i ->
@@ -96,7 +102,7 @@ data class StatoElaborazione(
             }
             copy(confini = confini)
         }
-        is Passo.Taglio -> copy(
+        is Passo.Taglio -> if (ricomposizione != null) copy(ricomposizione = PESO_RICOMPOSIZIONE_TAGLIO * passo.brano / nomi.size) else copy(
             taglio = passo.brano,
             avanzamento = avanzamento.mapIndexed { i, a ->
                 when {
@@ -106,7 +112,9 @@ data class StatoElaborazione(
                 }
             },
         )
-        is Passo.Unione -> {
+        is Passo.Unione -> if (ricomposizione != null) {
+            copy(ricomposizione = PESO_RICOMPOSIZIONE_TAGLIO + (1 - PESO_RICOMPOSIZIONE_TAGLIO) * passo.frazione)
+        } else {
             val f = passo.frazione
             val attivo = confini?.indexOfFirst { f < it - 1e-9 } ?: -1
             copy(
@@ -134,5 +142,7 @@ data class StatoElaborazione(
         const val PESO_UNIONE = 0.15
         /** Parte dell'analisi di un brano occupata dalla decodifica (il resto: battiti, croma, ritornello). */
         private const val PESO_LETTURA = 0.7
+        /** Nella ricomposizione c'è solo mix e codifica. */
+        private const val PESO_RICOMPOSIZIONE_TAGLIO = 0.6
     }
 }
