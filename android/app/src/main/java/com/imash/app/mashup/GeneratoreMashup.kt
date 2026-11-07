@@ -11,11 +11,29 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import java.io.File
-import java.util.concurrent.atomic.AtomicInteger
 
 /** Fasi mostrate nella schermata di elaborazione (design: Analisi, Taglio, Unione). */
 enum class Fase { Analisi, Taglio, Unione }
+
+/** Avanzamento del [GeneratoreMashup], per la schermata di elaborazione e la notifica. */
+sealed interface Passo {
+    data class AnalisiIniziata(val brano: Int) : Passo
+    /** [secondi] di audio del brano già decodificati (ogni ~[SECONDI_LETTURA] s). */
+    data class Lettura(val brano: Int, val secondi: Double) : Passo
+    data class AnalisiFinita(val brano: Int, val analisi: AnalisiBrano) : Passo
+    data class Pianificato(val piano: Piano) : Passo
+    /** Il mix è arrivato al brano [brano]. */
+    data class Taglio(val brano: Int) : Passo
+    /** Frazione del mix già codificata in mp3, da 0 a 1. */
+    data class Unione(val frazione: Double) : Passo
+
+    companion object {
+        const val SECONDI_LETTURA = 5.0
+    }
+}
 
 /** Le due modalità del design: brani interi (mashup.py) o solo i ritornelli (estrai_ritornelli.py + mashup.py). */
 enum class Modalita { CanzoniIntere, Ritornelli }
@@ -34,6 +52,7 @@ sealed interface RisultatoMashup {
  * 2. Transizione per ogni coppia con [SceltaTransizione], piano delle durate con [DurationPlanner].
  * 3. Mix con il [MashupRenderer], letto dalla cache e salvato a sua volta come PCM (fase "Taglio").
  * 4. Mix riletto, scalato al picco 0,95 e codificato in mp3 (fase "Unione").
+ * Si può interrompere annullando la coroutine: il controllo avviene a ogni blocco letto.
  */
 class GeneratoreMashup(
     private val context: Context,
@@ -44,7 +63,7 @@ class GeneratoreMashup(
     suspend fun genera(
         durataObiettivo: Double,
         uscita: File,
-        avanzamento: (Fase, brano: Int) -> Unit,
+        avanzamento: (Passo) -> Unit,
     ): RisultatoMashup {
         val lavoro = File(context.cacheDir, "lavoro").apply { deleteRecursively(); mkdirs() }
         try {
@@ -58,8 +77,9 @@ class GeneratoreMashup(
         durataObiettivo: Double,
         uscita: File,
         lavoro: File,
-        avanzamento: (Fase, brano: Int) -> Unit,
+        avanzamento: (Passo) -> Unit,
     ): RisultatoMashup {
+        val contesto = currentCoroutineContext()
         val pcm = List(brani.size) { File(lavoro, "brano$it.pcm") }
         val (analisi, picchi) = analizzaInParallelo(pcm, avanzamento)
 
@@ -69,13 +89,17 @@ class GeneratoreMashup(
             is EsitoPiano.TroppeCanzoni -> return RisultatoMashup.TroppeCanzoni(esito.totale, esito.massimo)
             is EsitoPiano.Ok -> esito
         }
+        avanzamento(Passo.Pianificato(piano.piano))
 
         val guadagni = FloatArray(brani.size) { i ->
             val s = piano.piano.segmenti[i]
             MashupRenderer.guadagno(analisi[i].rms(s.inizio, s.inizio + s.durata))
         }
         val renderer = MashupRenderer(piano.piano, guadagni, { i, max, ricevitore ->
-            LettorePcm.leggi(pcm[i], max, ricevitore = ricevitore)
+            LettorePcm.leggi(pcm[i], max) { b, n ->
+                contesto.ensureActive()
+                ricevitore.ricevi(b, n)
+            }
         }, SR)
 
         // Il mix può superare ±1 prima della normalizzazione: per salvarlo a 16 bit senza
@@ -83,7 +107,7 @@ class GeneratoreMashup(
         val mix = File(lavoro, "mix.pcm")
         val riduzione = 1f / MashupRenderer.limiteMix(guadagni, picchi)
         val scrittore = ScrittorePcm(mix, riduzione)
-        scrittore.use { renderer.renderizza(it) { b -> avanzamento(Fase.Taglio, b) } }
+        scrittore.use { renderer.renderizza(it) { b -> avanzamento(Passo.Taglio(b)) } }
         if (scrittore.saturati > 0) Log.w("Imash", "Mix: ${scrittore.saturati} campioni limitati a ±1")
         pcm.forEach { it.delete() }
 
@@ -92,13 +116,14 @@ class GeneratoreMashup(
         var codificati = 0L
         uscita.outputStream().buffered().use { file ->
             Mp3Encoder(SR, 2, file).use { encoder ->
-                avanzamento(Fase.Unione, 0)
+                avanzamento(Passo.Unione(0.0))
+                val passo = SR * 2L                 // un aggiornamento ogni 2 s di mix
                 LettorePcm.leggi(mix, scala = scala) { b, n ->
+                    contesto.ensureActive()
                     encoder.codifica(b, n)
-                    val prima = (codificati * brani.size / totale).toInt()
+                    val prima = codificati / passo
                     codificati += n
-                    val dopo = (codificati * brani.size / totale).toInt().coerceAtMost(brani.size - 1)
-                    if (dopo != prima) avanzamento(Fase.Unione, dopo)
+                    if (codificati / passo != prima) avanzamento(Passo.Unione(codificati.toDouble() / totale))
                 }
             }
         }
@@ -111,23 +136,29 @@ class GeneratoreMashup(
      */
     private suspend fun analizzaInParallelo(
         pcm: List<File>,
-        avanzamento: (Fase, brano: Int) -> Unit,
+        avanzamento: (Passo) -> Unit,
     ): Pair<List<AnalisiBrano>, FloatArray> = coroutineScope {
-        val conclusi = AtomicInteger()
-        avanzamento(Fase.Analisi, 0)
         val esiti = brani.mapIndexed { i, uri ->
             async(Dispatchers.Default.limitedParallelism(PARALLELISMO)) {
+                avanzamento(Passo.AnalisiIniziata(i))
+                val contesto = currentCoroutineContext()
                 val analizzatore = AnalizzatoreBrano(SR, cercaRitornello = modalita == Modalita.Ritornelli)
                 val scrittore = ScrittorePcm(pcm[i])
+                val passo = (Passo.SECONDI_LETTURA * SR).toLong()
+                var letti = 0L
                 scrittore.use {
                     LettoreAudio.leggi(context, uri, SR, 2) { b, n ->
+                        contesto.ensureActive()
                         analizzatore.ricevi(b, n)
                         it.ricevi(b, n)
+                        val prima = letti / passo
+                        letti += n
+                        if (letti / passo != prima) avanzamento(Passo.Lettura(i, letti.toDouble() / SR))
                     }
                 }
-                val risultato = analizzatore.concludi() to scrittore.picco
-                avanzamento(Fase.Analisi, conclusi.incrementAndGet().coerceAtMost(brani.size - 1))
-                risultato
+                val analisi = analizzatore.concludi()
+                avanzamento(Passo.AnalisiFinita(i, analisi))
+                analisi to scrittore.picco
             }
         }.awaitAll()
         esiti.map { it.first } to FloatArray(esiti.size) { esiti[it].second }
@@ -141,7 +172,6 @@ class GeneratoreMashup(
 
     companion object {
         const val SR = 44_100              // SR di mashup.py
-        const val DURATA_PREDEFINITA = 600.0
 
         /** Brani analizzati insieme: uno per core, al massimo 4 per non esaurire la memoria. */
         val PARALLELISMO = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)

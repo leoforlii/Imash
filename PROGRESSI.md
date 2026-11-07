@@ -574,3 +574,90 @@ Registro di ogni attività svolta nel progetto, in ordine cronologico.
     (`canzoni/risultati/mashup_ritornelli.mp3`).
 - Non verificato: confronto con lo script Python originale (su questo PC mancano librosa e pychorus).
 - **Prossimo passo**: ascolto dell'utente; poi, con conferma, la fase 5 (interfaccia completa).
+
+### 35. Unione con l'altro PC e fase 5, passo 1: schermata Brani
+- ✅ Su richiesta della sessione principale (PC di casa) e con l'ok dell'utente: commit di tutto il lavoro di questo
+  PC (voci 31-34) e push sul nuovo ramo **`altro-pc`** (commit `a8efb3a`, basato su `d44ced8`). L'unione con `main`
+  (che ha già `CLAUDE.md` e una sua voce 31) la fa la sessione principale: **numerazione delle voci da sistemare**.
+- ✅ L'utente ha dato il via alla fase 5 e ha approvato due scelte:
+  - riordino con la libreria **`sh.calvin.reorderable` 3.1.0** (invece di un'implementazione propria);
+  - **transizioni modificabili nella schermata Risultato** (per ogni passaggio Mix a tempo / Scambio dei bassi,
+    poi il mashup si ricrea; i file intermedi resteranno nella cache fino a "Salva" o "Nuovo mashup").
+- Piano della fase 5, un passo alla volta con conferma: 1 Brani, 2 Impostazioni, 3 Elaborazione con servizio e
+  notifica, 4 Risultato con lettore e transizioni, 5 rifiniture (icone barra di stato, mp3 temporaneo, via il
+  pannello di prova).
+- ✅ Passo 1, schermata Brani (design 1, 1b, 1c):
+  - `data/Brani.kt`: `BranoScelto` (uri, nome, durata), nome e durata letti senza decodificare
+    (`OpenableColumns` + `MediaMetadataRetriever`); permesso di lettura persistente (servirà al servizio).
+  - `data/Impostazioni.kt`: durata con DataStore (3-30 min, predefinita 10); la userà anche il passo 2.
+  - `mashup/Anteprima.kt`: stima della durata prima dell'analisi (Ritornelli = al massimo 60 s per brano),
+    stesso margine +20% di `DurationPlanner` (riusato `MARGINE_MASSIMO` e `MAX_CLIP_SEC`, niente doppioni).
+  - `ui/BarraMashup.kt`: la barra del mashup (Canvas, giunture sfumate da 10 dp, parte oltre il limite a strisce
+    con il bordo di errore). Ci si è spostata anche `minSec`, prima privata in `Navigazione.kt`.
+  - `ui/StatoBrani.kt` (ViewModel) e `ui/SchermataBrani.kt`: selettore della modalità con la frase di aiuto,
+    stato vuoto, avviso "Troppe canzoni" con "Apri impostazioni", anteprima, lista trascinabile con numero
+    colorato e "Rimuovi", "Aggiungi mp3", "Crea mashup" attivo solo con ≥ 2 brani e senza "Troppe canzoni";
+    file illeggibili saltati con uno snackbar; brani doppi ignorati.
+  - 7 icone Material Symbols Rounded (licenza Apache 2.0) in `res/drawable/ic_*.xml`.
+  - Tolta `GeneratoreMashup.DURATA_PREDEFINITA` (doppione): ora c'è `Impostazioni.DURATA_PREDEFINITA`.
+  - Il pannello di prova è passato provvisoriamente nella schermata segnaposto "Elaborazione".
+- ✅ Test: **47/47** (3 nuovi in `AnteprimaTest`: esempio 17:10 del design, entro il +20%, Ritornelli a 60 s).
+  Release: BUILD SUCCESSFUL, APK 2,78 MB.
+- ✅ Prova sull'emulatore: stato vuoto; 4 brani (13:26) → avviso "Troppe canzoni", barra a strisce oltre 12:00,
+  "Crea mashup" disattivato; trascinamento dell'ultimo brano in cima (numeri, colori e barra aggiornati);
+  rimosso un brano → 10:44 "accorciati a 10:00", pulsante attivo; Ritornelli → 3:00 "meno di 10:00";
+  tema scuro corretto. Corretto il colore dell'icona di "Apri impostazioni" (era petrolio).
+- Nota: l'anteprima non conosce ancora le transizioni, quindi vicino al limite il controllo vero resta quello
+  del pianificatore dopo l'analisi.
+- ✅ L'utente ha confermato il passo 1.
+
+### 36. Fase 5, passo 2: schermata Impostazioni
+- ✅ `ui/SchermataImpostazioni.kt` (design 4): "Durata del mashup" con il valore (`10 min`), cursore 3-30 a passi
+  di 1 minuto, etichette 3 min / 30 min, frase sul +20% con il massimo calcolato (riusato
+  `DurationPlanner.MARGINE_MASSIMO` e `minSec`), "Ripristina 10 minuti" disattivato quando vale già 10.
+  Freccia "Torna ai brani". Il valore si salva in DataStore (`Impostazioni`, voce 35) solo quando si lascia
+  il cursore, non a ogni movimento.
+- `Navigazione.kt`: la rotta Impostazioni porta alla schermata vera (si apre dall'ingranaggio e da
+  "Apri impostazioni" dell'avviso).
+- ✅ Test unitari 47/47, release BUILD SUCCESSFUL.
+- ✅ Prova sull'emulatore: 4 brani (13:26) → "Troppe canzoni" → "Apri impostazioni" → cursore da 10 a 14 min
+  (frase: "fino a 16:48") → indietro: avviso sparito, "13:26 di brani, meno di 14:00", "Crea mashup" attivo;
+  app chiusa e riaperta: la durata resta 14; "Ripristina" la riporta a 10 e si disattiva.
+- ✅ L'utente ha confermato il passo 2.
+
+### 37. Fase 5, passo 3: Elaborazione con servizio in primo piano e notifica
+- ✅ `GeneratoreMashup`: nuovo avanzamento dettagliato `Passo` (AnalisiIniziata, Lettura ogni 5 s di audio,
+  AnalisiFinita con l'analisi, Pianificato con il piano, Taglio per brano, Unione con la frazione codificata)
+  al posto di `(Fase, brano)`; si può **annullare** (controllo a ogni blocco letto, nel decoder, nel mix e
+  nella codifica; l'analisi finale di un brano non si interrompe, quindi l'annullamento arriva entro qualche s).
+- ✅ `servizio/StatoElaborazione.kt` (senza Android, testato): avanzamento di ogni brano (fase, attivo, fatto,
+  secondi letti, ritornello non trovato), percentuale con pesi Analisi 0,6 / Taglio 0,25 / Unione 0,15,
+  "Brano X di N", esito (Pronto, TroppeCanzoni, Errore, Annullato).
+- ✅ `servizio/Elaborazione.kt` (stato condiviso, un'elaborazione alla volta) e `servizio/ServizioMashup.kt`:
+  servizio in primo piano di tipo **mediaProcessing** (Android 15+) o **dataSync** (10-14), wake lock parziale
+  (max 30 min), notifica di avanzamento (al massimo 2 aggiornamenti/s) e, alla fine, notifica "Mashup pronto"
+  o di errore che riapre l'app. `onTimeout` (limite di Android 15) annulla. Permessi nel manifest:
+  FOREGROUND_SERVICE(_DATA_SYNC, _MEDIA_PROCESSING), POST_NOTIFICATIONS (chiesto a "Crea mashup" su
+  Android 13+; se rifiutato si crea lo stesso), WAKE_LOCK.
+- ✅ `ui/SchermataElaborazione.kt` (design 2): titolo, modalità e numero di brani, percentuale grande, barra del
+  mashup che si riempie (fatto / in corso a strisce / in attesa: `BarraMashup` ha ora gli `stati`),
+  "Brano X di N" e tempo rimasto stimato, righe dei brani con icona di stato, fasi Analisi/Taglio/Unione
+  come etichette e barra di lettura, nota "Ritornello non trovato: usato il tratto più intenso".
+  "Annulla" (e il tasto Indietro) chiede conferma ("Interrompere il mashup?" – Continua / Interrompi).
+  "Troppe canzoni" dopo l'analisi ed errori mostrati con "Torna ai brani".
+- `Navigazione.kt` riscritta: tolti il segnaposto della fase 1, il pannello di prova e l'anteprima dei colori;
+  riaprendo l'app si torna all'elaborazione in corso o al risultato. Risultato **provvisorio** (riepilogo del
+  piano, "Salva mp3", "Nuovo mashup") fino al passo 4.
+- 2 icone in più (check_circle pieno, schedule). Test: **49/49** (2 nuovi in `StatoElaborazioneTest`).
+- Problemi trovati e risolti: crash "Starting FGS with type none" con `ServiceCompat.startForeground` → ora
+  `startForeground(id, notifica, tipo)` diretto. Il wake lock ora si rilascia a fine lavoro e non solo in
+  `onDestroy` (prudenza: dal log di sistema non risultava comunque mai rimasto attivo).
+- ✅ Prove sull'emulatore: elaborazione completa con lo stesso piano della voce 32 (10:13, due Scambio dei bassi),
+  notifica con barra, passaggio automatico al risultato; annullamento con conferma → ritorno ai brani,
+  servizio fermato, wake lock rilasciato.
+- ⚠️ **Tempi**: sull'emulatore riavviato 65 s a schermo acceso (voce 33: 28 s con il pannello di prova), poi
+  200 s a schermo spento e 429 s in una prova successiva, con l'emulatore in swap: misure troppo variabili per
+  essere affidabili. Nella prova da 429 s il thread dell'interfaccia ha usato 70 s di CPU su 513 totali
+  (indicatori animati disegnati in software dall'emulatore). Da misurare su un telefono vero (fase 6); se serve,
+  si riducono le animazioni durante l'elaborazione.
+- **Prossimo passo**: conferma dell'utente, poi il passo 4 (Risultato con lettore e transizioni modificabili).

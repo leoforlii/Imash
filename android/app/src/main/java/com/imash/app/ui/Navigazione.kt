@@ -1,28 +1,23 @@
 package com.imash.app.ui
 
-import android.util.Log
-import androidx.compose.foundation.background
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,206 +25,112 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.imash.app.mashup.GeneratoreMashup
-import com.imash.app.mashup.MetodoRitornello
-import com.imash.app.mashup.Modalita
-import com.imash.app.mashup.RisultatoMashup
-import com.imash.app.data.Archivio
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.imash.app.R
-import com.imash.app.ui.tema.LocalColoriBrani
+import com.imash.app.data.Archivio
+import com.imash.app.mashup.MetodoRitornello
+import com.imash.app.servizio.Elaborazione
+import com.imash.app.servizio.Esito
+import com.imash.app.servizio.ServizioMashup
 import com.imash.app.ui.tema.Spaziature
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Le schermate del design (design/schermate.html). */
-enum class Schermata(val titolo: String) {
-    Brani("Imash"),
-    Elaborazione("Elaborazione"),
-    Risultato("Mashup pronto"),
-    Impostazioni("Impostazioni"),
-}
+enum class Schermata { Brani, Elaborazione, Risultato, Impostazioni }
 
 @Composable
 fun NavigazioneImash(nav: NavHostController = rememberNavController()) {
+    val tornaAiBrani = { nav.popBackStack(Schermata.Brani.name, inclusive = false); Unit }
+    val versoRisultato = {
+        nav.navigate(Schermata.Risultato.name) { popUpTo(Schermata.Brani.name) }
+    }
+    // Riaprendo l'app (per es. dalla notifica) si torna all'elaborazione in corso o al risultato.
+    LaunchedEffect(Unit) {
+        val s = Elaborazione.stato.value ?: return@LaunchedEffect
+        if (s.esito is Esito.Pronto) versoRisultato() else nav.navigate(Schermata.Elaborazione.name)
+    }
     NavHost(navController = nav, startDestination = Schermata.Brani.name) {
-        Schermata.entries.forEach { schermata ->
-            composable(schermata.name) {
-                SchermataSegnaposto(
-                    schermata = schermata,
-                    puoTornare = schermata != Schermata.Brani,
-                    indietro = { nav.popBackStack() },
-                    vaiA = { nav.navigate(it.name) },
-                )
-            }
+        composable(Schermata.Brani.name) {
+            SchermataBrani(
+                apriImpostazioni = { nav.navigate(Schermata.Impostazioni.name) },
+                creaMashup = { nav.navigate(Schermata.Elaborazione.name) },
+            )
+        }
+        composable(Schermata.Impostazioni.name) {
+            SchermataImpostazioni(indietro = { nav.popBackStack() })
+        }
+        composable(Schermata.Elaborazione.name) {
+            SchermataElaborazione(pronto = versoRisultato, tornaAiBrani = tornaAiBrani)
+        }
+        composable(Schermata.Risultato.name) {
+            RisultatoProvvisorio(nuovoMashup = { Elaborazione.chiudi(); tornaAiBrani() })
         }
     }
 }
 
 /**
- * Fase 1: segnaposto unico per tutte le schermate, per provare tema e navigazione.
- * Verrà sostituito dalle schermate vere nella fase 5.
+ * Passo 3 della fase 5 (provvisorio, sostituito dalla schermata Risultato nel passo 4):
+ * riepilogo del piano e "Salva mp3" con il "Salva con nome" di sistema.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SchermataSegnaposto(
-    schermata: Schermata,
-    puoTornare: Boolean,
-    indietro: () -> Unit,
-    vaiA: (Schermata) -> Unit,
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(schermata.titolo) },
-                navigationIcon = {
-                    if (puoTornare) {
-                        IconButton(onClick = indietro) {
-                            Icon(painterResource(R.drawable.ic_indietro), contentDescription = "Indietro")
-                        }
-                    }
-                },
-            )
-        },
-    ) { margini ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(margini)
-                .padding(horizontal = Spaziature.sp4, vertical = Spaziature.sp6),
-            verticalArrangement = Arrangement.spacedBy(Spaziature.sp4),
-        ) {
-            Text("Schermata provvisoria (fase 1)", style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "Qui arriverà la schermata «${schermata.titolo}» del design.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            AnteprimaColoriBrani()
-            if (schermata == Schermata.Brani) ProvaMashup()
-            Schermata.entries.filter { it != schermata }.forEachIndexed { i, altra ->
-                if (i == 0) {
-                    Button(onClick = { vaiA(altra) }) { Text("Vai a ${altra.titolo}") }
-                } else {
-                    OutlinedButton(onClick = { vaiA(altra) }) { Text("Vai a ${altra.titolo}") }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Fase 3 (provvisorio, sostituito dalle schermate vere nella fase 5): sceglie i brani,
- * crea il mashup "Canzoni intere" di 10 minuti e lo salva con il "Salva con nome" di sistema.
- */
-@Composable
-private fun ProvaMashup() {
+private fun RisultatoProvvisorio(nuovoMashup: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var stato by remember { mutableStateOf("Prova fasi 3-4: scegli la modalità e almeno 2 brani") }
-    var pronto by remember { mutableStateOf(false) }
-    var modalita by remember { mutableStateOf(Modalita.CanzoniIntere) }
+    val stato by Elaborazione.stato.collectAsStateWithLifecycle()
+    var messaggio by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) { NotificationManagerCompat.from(context).cancel(ServizioMashup.ID_ESITO) }
     val temporaneo = remember { Archivio.fileTemporaneo(context) }
-
-    val salva = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument(Archivio.TIPO_MP3),
-    ) { uri ->
+    val salva = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(Archivio.TIPO_MP3)) { uri ->
         if (uri != null) scope.launch {
-            stato = runCatching { withContext(Dispatchers.IO) { Archivio.copiaIn(context, temporaneo, uri) } }
+            messaggio = runCatching { withContext(Dispatchers.IO) { Archivio.copiaIn(context, temporaneo, uri) } }
                 .fold({ "Salvato" }, { "Errore nel salvataggio: ${it.message}" })
         }
     }
-    val scegli = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        if (uris.isEmpty()) return@rememberLauncherForActivityResult
-        pronto = false
-        scope.launch {
-            val inizio = System.currentTimeMillis()
-            stato = runCatching {
-                withContext(Dispatchers.Default) {
-                    GeneratoreMashup(context, uris, modalita).genera(GeneratoreMashup.DURATA_PREDEFINITA, temporaneo) { fase, i ->
-                        stato = "${fase.name}: brano ${i + 1} di ${uris.size}…"
-                    }
-                }
-            }.fold(
-                { risultato ->
-                    val sec = (System.currentTimeMillis() - inizio) / 1000.0
-                    when (risultato) {
-                        is RisultatoMashup.TroppeCanzoni ->
-                            "Troppe canzoni: ${minSec(risultato.totale)} (massimo ${minSec(risultato.massimo)})"
-                        is RisultatoMashup.Creato -> {
-                            pronto = true
-                            buildString {
-                                append("Pronto in ${"%.0f".format(sec)} s – durata ${minSec(risultato.piano.totale)}")
-                                if (risultato.piuCorto) append(" (brani troppo corti)")
-                                risultato.piano.segmenti.forEachIndexed { i, s ->
-                                    val a = risultato.analisi[i]
-                                    append("\n${i + 1}. ${minSec(s.inizio)} → ${minSec(s.inizio + s.durata)}")
-                                    append(" di ${minSec(a.durata)}, ${"%.0f".format(a.bpm)} BPM, ${a.tonalita ?: "?"}")
-                                    a.ritornello?.let { r ->
-                                        val come = if (r.metodo == MetodoRitornello.Ripetizione) "ripetizione" else "energia"
-                                        append("\n   ritornello ${minSec(r.inizio)} → ${minSec(r.fine)} ($come)")
-                                    }
-                                    if (i < risultato.piano.dissolvenze.size) {
-                                        append("\n   ↳ ${risultato.piano.transizioni[i].nome}")
-                                        append(" (${"%.1f".format(risultato.piano.dissolvenze[i])} s)")
-                                    }
-                                }
-                            }
+    val s = stato ?: return
+    val risultato = (s.esito as? Esito.Pronto)?.risultato ?: return
+
+    Scaffold(topBar = { TopAppBar(title = { Text("Mashup pronto") }) }) { margini ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(margini)
+                .padding(Spaziature.sp4)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Spaziature.sp3),
+        ) {
+            Text(minSec(risultato.piano.totale), style = MaterialTheme.typography.displayMedium)
+            Text(
+                buildString {
+                    append("Schermata provvisoria (passo 3)")
+                    if (risultato.piuCorto) append(": brani troppo corti per la durata scelta")
+                    risultato.piano.segmenti.forEachIndexed { i, seg ->
+                        val a = risultato.analisi[i]
+                        append("\n${i + 1}. ${s.nomi[i]}: ${minSec(seg.inizio)} → ${minSec(seg.inizio + seg.durata)}")
+                        append(", ${"%.0f".format(a.bpm)} BPM, ${a.tonalita ?: "?"}")
+                        a.ritornello?.let { r ->
+                            val come = if (r.metodo == MetodoRitornello.Ripetizione) "ripetizione" else "energia"
+                            append("\n   ritornello ${minSec(r.inizio)} → ${minSec(r.fine)} ($come)")
+                        }
+                        if (i < risultato.piano.dissolvenze.size) {
+                            append("\n   ↳ ${risultato.piano.transizioni[i].nome}")
+                            append(" (${"%.1f".format(risultato.piano.dissolvenze[i])} s)")
                         }
                     }
                 },
-                { e -> Log.e("Imash", "Mashup fallito", e); "Errore: ${e.javaClass.simpleName} ${e.message.orEmpty()}" },
+                style = MaterialTheme.typography.bodyMedium,
             )
-        }
-    }
-
-    Row(horizontalArrangement = Arrangement.spacedBy(Spaziature.sp2)) {
-        FilterChip(
-            selected = modalita == Modalita.CanzoniIntere,
-            onClick = { modalita = Modalita.CanzoniIntere },
-            label = { Text("Canzoni intere") },
-        )
-        FilterChip(
-            selected = modalita == Modalita.Ritornelli,
-            onClick = { modalita = Modalita.Ritornelli },
-            label = { Text("Ritornelli") },
-        )
-    }
-    Text(stato, style = MaterialTheme.typography.bodyMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(Spaziature.sp2)) {
-        Button(onClick = { scegli.launch(Archivio.TIPI_INGRESSO) }) { Text("Scegli mp3") }
-        OutlinedButton(enabled = pronto, onClick = { salva.launch("mashup.mp3") }) { Text("Salva mp3") }
-    }
-}
-
-private fun minSec(secondi: Double): String {
-    val s = secondi.toInt()
-    return "%d:%02d".format(s / 60, s % 60)
-}
-
-/** Prova dei colori dei brani: una barra a segmenti come la barra del mashup. */
-@Composable
-private fun AnteprimaColoriBrani() {
-    val colori = LocalColoriBrani.current
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(28.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.shapes.extraSmall),
-    ) {
-        colori.lista.indices.forEach { i ->
-            Box(
-                Modifier
-                    .weight(1f)
-                    .fillMaxSize()
-                    .background(colori.perIndice(i)),
-            )
+            if (messaggio.isNotEmpty()) Text(messaggio, style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(Spaziature.sp2)) {
+                Button(onClick = { salva.launch("mashup.mp3") }) { Text("Salva mp3") }
+                OutlinedButton(onClick = nuovoMashup) { Text("Nuovo mashup") }
+            }
         }
     }
 }
