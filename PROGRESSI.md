@@ -485,3 +485,18 @@ Registro di ogni attività svolta nel progetto, in ordine cronologico.
   l'indirizzo remoto ora contiene l'utente (`https://leoforlii@github.com/...`) e l'accesso è stato
   fatto dall'utente nel browser.
 - Stato del lavoro invariato: voce 29 in pausa (prova sull'emulatore delle nuove transizioni da rifare).
+
+### 31. Controllo della repo, sessione accessibile ovunque e CLAUDE.md
+- Domanda dell'utente: è stato pushato tutto? ✅ Verificato: GitHub (`origin/main`, 2 commit) è
+  identico a questo PC, nessun file non salvato; PROGRESSI.md contiene tutte le voci 1-30.
+- Problema segnalato: dall'altro computer l'utente ha aperto una nuova sessione ("Progetto Imash da
+  GitHub") scaricando la repo, ma mancavano alcune specifiche. Causa: le **regole di lavoro** erano
+  salvate solo nella memoria di Claude di questo PC, non nella repo.
+- ✅ Attivato **Remote Control** su questa sessione (accessibile anche dagli altri dispositivi).
+- ✅ Creato **`CLAUDE.md`** nella radice (confermato dall'utente: regole + decisioni): le 4 regole di
+  lavoro, le specifiche decise, lo stato delle fasi e i comandi. Ogni sessione di Claude su qualunque
+  computer lo legge da sola all'avvio.
+- ⏳ La sessione dell'altro computer risulta **offline** e non ha caricato niente su GitHub. Le è stato
+  mandato un messaggio (consegnato quando quel computer si ricollega) con la richiesta di pushare il suo
+  lavoro su un nuovo ramo `altro-pc`. Quando arriva: unirlo a `main` controllando i doppioni,
+  aggiornare PROGRESSI.md e pushare.
