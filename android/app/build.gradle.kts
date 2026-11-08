@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -13,10 +15,25 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.1"
+    }
 
-        ndk {
-            // Telefoni (arm64, arm 32 bit) ed emulatore (x86_64).
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+    // Chiave di firma vera: android/keystore.properties (fuori da git) con storeFile, storePassword,
+    // keyAlias, keyPassword. Se manca (per es. su un altro PC) la release esce NON firmata
+    // (app-release-unsigned.apk, non si installa): mai firmata di nascosto con la chiave di debug
+    // (scansione Vantage, F-001). Per una prova la si può chiedere esplicitamente:
+    //   ./gradlew assembleRelease -PfirmaDebug     → versione "0.1-firmadebug"
+    val firmaDebug = providers.gradleProperty("firmaDebug").isPresent
+    val proprietaFirma = rootProject.file("keystore.properties").takeIf { it.exists() }?.let { f ->
+        Properties().apply { f.inputStream().use { load(it) } }
+    }
+    signingConfigs {
+        if (proprietaFirma != null) {
+            create("imash") {
+                storeFile = rootProject.file(proprietaFirma.getProperty("storeFile"))
+                storePassword = proprietaFirma.getProperty("storePassword")
+                keyAlias = proprietaFirma.getProperty("keyAlias")
+                keyPassword = proprietaFirma.getProperty("keyPassword")
+            }
         }
     }
 
@@ -29,13 +46,25 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Anche l'emulatore (x86_64).
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
+        }
         release {
+            // Solo telefoni: arm64 e arm 32 bit.
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            // Provvisorio: firma di debug, per installare la release su emulatore/telefoni di prova.
-            // Nella fase 6 si crea una chiave vera per l'app distribuita.
-            signingConfig = signingConfigs.getByName("debug")
+            val firmaVera = signingConfigs.findByName("imash")
+            signingConfig = firmaVera ?: if (firmaDebug) signingConfigs.getByName("debug") else null
+            if (firmaVera == null) {
+                if (firmaDebug) versionNameSuffix = "-firmadebug"
+                logger.warn(
+                    "Imash: manca android/keystore.properties, la release " +
+                        if (firmaDebug) "è firmata con la chiave di DEBUG (solo per prove)." else "NON sarà firmata.",
+                )
+            }
         }
     }
 
@@ -46,6 +75,11 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    lint {
+        // La release è solo per telefoni (arm): niente x86_64 per i Chromebook, scelta voluta (fase 6).
+        disable += "ChromeOsAbiSupport"
     }
 }
 

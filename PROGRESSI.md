@@ -708,3 +708,32 @@ Registro di ogni attività svolta nel progetto, in ordine cronologico.
   (2:41, brani da 0:51 e 1:43, due Scambio dei bassi), "3 ritornelli uniti: i brani non bastano per 10:00".
 - **Fase 5 completata.** Restano da decidere: ottimizzazioni di velocità (unione in parallelo, analisi) e la
   fase 6 (telefono vero, prestazioni in release, scansione di sicurezza, chiave di firma vera, togliere x86_64).
+- ✅ L'utente ha chiesto di salvare: commit `ffe7104` sul ramo `altro-pc`.
+
+### 40. Fase 6: firma vera, scansione di sicurezza, prova sul telefono
+- ✅ Decisioni dell'utente: prova su telefono vero collegato via USB; scansione **Vantage** completa; chiave di firma
+  creata dall'utente (password scelta da lui, mai vista da Claude).
+- ✅ **Firma vera**: `build.gradle.kts` legge `android/keystore.properties` (storeFile `firma/imash.jks`, alias
+  `imash`); file e cartella in `.gitignore` insieme a `*.jks`/`*.keystore`. Chiave creata dall'utente con
+  `keytool -genkeypair … -keyalg RSA -keysize 4096 -validity 36500` (certificato CN=leonardo forli, C=IT).
+  ⚠️ L'utente deve tenere una copia di riserva di `imash.jks` e della password: senza, niente aggiornamenti.
+- ✅ **Release solo ARM** (arm64-v8a, armeabi-v7a); x86_64 resta nella debug per l'emulatore. Lint
+  `ChromeOsAbiSupport` disattivato di proposito (niente Chromebook). APK release: **2,16 MB**.
+- ✅ **Scansione Vantage** (pipeline mobile 01-06, artefatti in `.vantage/`, fuori da git): ricognizione, mappatura,
+  10 agenti OWASP Mobile Top 10 in parallelo, validazione, report in italiano
+  (`.vantage/artifacts/reports/report.md`). **Rischio complessivo: basso.** 4 candidati → 1 confermato:
+  - **F-001 (Low, CVSS 2,9)**: senza `keystore.properties` la release si firmava in silenzio con la chiave di
+    debug. **Corretto**: ora esce non firmata (`app-release-unsigned.apk`) con un avviso; la firma di debug
+    solo chiedendola (`-PfirmaDebug`, versione "0.1-firmadebug"). Verificato spostando il file per una build.
+  - Scartati ma applicati come rinforzi (scelta dell'utente): `InfoAudio` rifiuta frequenze fuori 8-384 kHz e
+    canali fuori 1-8, `Resampler` rifiuta frequenze ≤ 0 (mval-001); `lame_jni.c` controlla dimensioni degli
+    array, handle e NULL di `GetPrimitiveArrayCritical`, e `Mp3Encoder` controlla anche l'esito del flush (mval-002).
+  - Tutto il resto pulito: nessun segreto, niente rete, nessun dato personale nei log, 5 permessi giustificati,
+    release offuscata e non debuggabile, backup disattivato.
+- ✅ Test **54/54** (2 nuovi in `ValoriAudioTest`), lint **0 avvisi**.
+- ✅ **Telefono vero**: Samsung Galaxy S23+ (SM-S916B, Android 17, arm64). Installata la release firmata, brani di
+  prova copiati in `Music/canzoni`, mashup creato dall'utente: **20 s in tutto** (analisi 11,2 s, taglio 1,9 s,
+  unione 7,1 s), contro 45-65 s sull'emulatore. Nessun crash; memoria dell'app ~160 MB (PSS) a fine lavoro.
+- Nota per la velocità: sul telefono l'unione pesa il 35% (7 s); l'unione in parallelo potrebbe toglierne qualche
+  secondo. Da decidere con l'utente.
+- **Prossimo passo**: impressioni dell'utente sulla prova (audio, interfaccia), poi commit su `altro-pc`.

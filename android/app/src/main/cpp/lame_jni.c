@@ -6,6 +6,11 @@
 
 #define FUNZ(nome) Java_com_imash_app_audio_Mp3Encoder_##nome
 
+// Errori del ponte (negativi come quelli di LAME, ma fuori dal loro intervallo): Mp3Encoder li
+// trasforma in eccezione.
+#define ERRORE_ARGOMENTI (-1000)
+#define ERRORE_MEMORIA   (-1001)
+
 JNIEXPORT jlong JNICALL FUNZ(nativeInit)(JNIEnv *env, jclass cls,
                                          jint sampleRate, jint canali, jint kbps) {
     lame_t l = lame_init();
@@ -29,13 +34,27 @@ JNIEXPORT jint JNICALL FUNZ(nativeEncode)(JNIEnv *env, jclass cls, jlong handle,
                                           jfloatArray sinistra, jfloatArray destra,
                                           jint campioni, jbyteArray uscita) {
     lame_t l = (lame_t) (intptr_t) handle;
+    // Mai leggere oltre la fine degli array (scansione Vantage, mval-002).
+    if (!l || !sinistra || !uscita || campioni < 0 ||
+        campioni > (*env)->GetArrayLength(env, sinistra) ||
+        (destra && campioni > (*env)->GetArrayLength(env, destra))) {
+        return ERRORE_ARGOMENTI;
+    }
     jsize dim = (*env)->GetArrayLength(env, uscita);
     jfloat *s = (*env)->GetPrimitiveArrayCritical(env, sinistra, NULL);
-    jfloat *d = destra ? (*env)->GetPrimitiveArrayCritical(env, destra, NULL) : s;
-    jbyte *u = (*env)->GetPrimitiveArrayCritical(env, uscita, NULL);
-    int n = lame_encode_buffer_ieee_float(l, s, d, campioni, (unsigned char *) u, dim);
-    (*env)->ReleasePrimitiveArrayCritical(env, uscita, u, 0);
-    if (destra) (*env)->ReleasePrimitiveArrayCritical(env, destra, d, JNI_ABORT);
+    jfloat *d = NULL;
+    jbyte *u = NULL;
+    int n = ERRORE_MEMORIA;
+    if (!s) return ERRORE_MEMORIA;
+    d = destra ? (*env)->GetPrimitiveArrayCritical(env, destra, NULL) : s;
+    if (d) {
+        u = (*env)->GetPrimitiveArrayCritical(env, uscita, NULL);
+        if (u) {
+            n = lame_encode_buffer_ieee_float(l, s, d, campioni, (unsigned char *) u, dim);
+            (*env)->ReleasePrimitiveArrayCritical(env, uscita, u, 0);
+        }
+        if (destra) (*env)->ReleasePrimitiveArrayCritical(env, destra, d, JNI_ABORT);
+    }
     (*env)->ReleasePrimitiveArrayCritical(env, sinistra, s, JNI_ABORT);
     return n;
 }
@@ -43,13 +62,15 @@ JNIEXPORT jint JNICALL FUNZ(nativeEncode)(JNIEnv *env, jclass cls, jlong handle,
 JNIEXPORT jint JNICALL FUNZ(nativeFlush)(JNIEnv *env, jclass cls, jlong handle,
                                          jbyteArray uscita) {
     lame_t l = (lame_t) (intptr_t) handle;
+    if (!l || !uscita) return ERRORE_ARGOMENTI;
     jsize dim = (*env)->GetArrayLength(env, uscita);
     jbyte *u = (*env)->GetPrimitiveArrayCritical(env, uscita, NULL);
+    if (!u) return ERRORE_MEMORIA;
     int n = lame_encode_flush(l, (unsigned char *) u, dim);
     (*env)->ReleasePrimitiveArrayCritical(env, uscita, u, 0);
     return n;
 }
 
 JNIEXPORT void JNICALL FUNZ(nativeClose)(JNIEnv *env, jclass cls, jlong handle) {
-    lame_close((lame_t) (intptr_t) handle);
+    if (handle) lame_close((lame_t) (intptr_t) handle);
 }

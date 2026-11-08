@@ -14,7 +14,20 @@ fun interface RicevitorePcm {
 }
 
 /** Formato dell'audio decodificato. */
-data class InfoAudio(val sampleRate: Int, val canali: Int)
+data class InfoAudio(val sampleRate: Int, val canali: Int) {
+    // Valori letti dal file scelto dall'utente: se sono assurdi il file si rifiuta subito, invece di
+    // dividere per zero o far girare il ricampionamento all'infinito (scansione Vantage, mval-001).
+    init {
+        require(sampleRate in SR_MIN..SR_MAX) { "File audio non valido: frequenza di $sampleRate Hz" }
+        require(canali in 1..CANALI_MAX) { "File audio non valido: $canali canali" }
+    }
+
+    companion object {
+        const val SR_MIN = 8_000
+        const val SR_MAX = 384_000
+        const val CANALI_MAX = 8
+    }
+}
 
 /**
  * Come [RicevitorePcm], ma con il formato (si conosce solo quando il decoder parte).

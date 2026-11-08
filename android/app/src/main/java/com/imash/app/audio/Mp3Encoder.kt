@@ -37,6 +37,7 @@ class Mp3Encoder(
         try {
             if (bufferMp3.size < 7200) bufferMp3 = ByteArray(7200)
             val n = nativeFlush(handle, bufferMp3)
+            check(n >= 0) { "Errore LAME $n" }
             if (n > 0) uscita.write(bufferMp3, 0, n)
             uscita.flush()
         } finally {

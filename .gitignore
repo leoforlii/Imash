@@ -1,6 +1,12 @@
 # Brani di prova: audio protetti da diritti, non vanno nella repository
 canzoni/
 
+# Chiave di firma dell'app e sue password: MAI nella repository (tenerne una copia di riserva al sicuro)
+android/firma/
+android/keystore.properties
+*.jks
+*.keystore
+
 # Python
 __pycache__/
 *.pyc
@@ -18,3 +24,6 @@ android/.idea/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Artefatti della scansione di sicurezza Vantage
+.vantage/

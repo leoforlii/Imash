@@ -20,6 +20,10 @@ class Resampler(
     private val canali: Int,
     private val uscita: RicevitorePcm,
 ) {
+    init {
+        require(daSr > 0 && aSr > 0) { "Frequenze non valide: $daSr → $aSr Hz" }
+    }
+
     private val passo = daSr.toDouble() / aSr               // campioni d'ingresso per campione d'uscita
     private val taglio = min(1.0, aSr.toDouble() / daSr) * 0.95 // frequenza di taglio (1 = Nyquist d'ingresso)
     private val metaLarghezza = ZERI / taglio                // metà lunghezza del filtro, in campioni d'ingresso
