@@ -761,3 +761,10 @@ Registro di ogni attività svolta nel progetto, in ordine cronologico.
   validi, 605,9 s**; inviato all'utente da ascoltare alle giunture (~2:31, 5:03, 7:34).
 - Nota: senza serbatoio di bit, a 320 kbps la qualità dovrebbe restare indistinguibile; da confermare all'ascolto.
 - ✅ L'utente ha ascoltato le giunture: nessun difetto ("Tutto ok"). Salvato su `altro-pc`.
+
+### 42. Comando per l'APK firmato a portata di mano
+- Richiesta dell'utente: ricordare il comando e sapere dove trovare l'APK.
+- ✅ Nuovo `android/Crea APK firmato.bat`: doppio clic → lancia `firma-release.ps1` (chiede la password).
+- ✅ `firma-release.ps1` ora copia l'APK firmato anche sul Desktop come **`Imash.apk`**
+  (`C:\Users\leona\OneDrive\Desktop\Imash.apk`); l'originale resta in
+  `android\app\build\outputs\apk\release\app-release.apk`. Copiato sul Desktop anche l'APK attuale.

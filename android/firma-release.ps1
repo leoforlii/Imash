@@ -13,7 +13,12 @@ try {
     # Ferma il demone di Gradle, che altrimenti terrebbe la password in memoria.
     & "$PSScriptRoot\gradlew.bat" -p "$PSScriptRoot" --stop | Out-Null
     if ($esito -eq 0) {
-        Write-Host "`nFatto: $PSScriptRoot\app\build\outputs\apk\release\app-release.apk"
+        $apk = "$PSScriptRoot\app\build\outputs\apk\release\app-release.apk"
+        # Copia comoda sul Desktop (anche se il Desktop è su OneDrive).
+        $desktop = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Imash.apk'
+        Copy-Item $apk $desktop -Force
+        Write-Host "`nFatto: APK firmato in $apk"
+        Write-Host "Copia sul Desktop: $desktop"
     } else {
         Write-Host "`nCompilazione non riuscita (password sbagliata?)."
     }
