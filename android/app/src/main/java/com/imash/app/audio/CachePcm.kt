@@ -65,15 +65,22 @@ object LettorePcm {
 
     /**
      * Rilegge un file di [ScrittorePcm] e lo consegna a [ricevitore] a blocchi, moltiplicato per
-     * [scala]. Si ferma dopo [maxCampioni] campioni o alla fine del file.
+     * [scala], a partire dal campione [inizio]. Si ferma dopo [maxCampioni] campioni o alla fine del file.
      */
-    fun leggi(file: File, maxCampioni: Long = Long.MAX_VALUE, scala: Float = 1f, ricevitore: RicevitorePcm) {
+    fun leggi(
+        file: File,
+        maxCampioni: Long = Long.MAX_VALUE,
+        scala: Float = 1f,
+        inizio: Long = 0,
+        ricevitore: RicevitorePcm,
+    ) {
         val byte = ByteArray(BLOCCO * ScrittorePcm.BYTE_PER_CAMPIONE)
         val buffer = ByteBuffer.wrap(byte).order(ByteOrder.LITTLE_ENDIAN)
         val blocco = Array(2) { FloatArray(BLOCCO) }
         val k = scala / ScrittorePcm.MASSIMO
         var consegnati = 0L
-        BufferedInputStream(FileInputStream(file), ScrittorePcm.BUFFER).use { ingresso ->
+        val flusso = FileInputStream(file).apply { channel.position(inizio * ScrittorePcm.BYTE_PER_CAMPIONE) }
+        BufferedInputStream(flusso, ScrittorePcm.BUFFER).use { ingresso ->
             while (consegnati < maxCampioni) {
                 val letti = leggiTutto(ingresso, byte)
                 val n = minOf((letti / ScrittorePcm.BYTE_PER_CAMPIONE).toLong(), maxCampioni - consegnati).toInt()

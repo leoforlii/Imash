@@ -17,22 +17,25 @@ android {
         versionName = "0.1"
     }
 
-    // Chiave di firma vera: android/keystore.properties (fuori da git) con storeFile, storePassword,
-    // keyAlias, keyPassword. Se manca (per es. su un altro PC) la release esce NON firmata
+    // Chiave di firma vera: android/keystore.properties (fuori da git) con storeFile e keyAlias; la
+    // password NON è salvata su disco: arriva dalla variabile d'ambiente IMASH_FIRMA_PASSWORD, che lo
+    // script android/firma-release.ps1 chiede ogni volta. Se manca la chiave o la password
+    // (per es. su un altro PC) la release esce NON firmata
     // (app-release-unsigned.apk, non si installa): mai firmata di nascosto con la chiave di debug
     // (scansione Vantage, F-001). Per una prova la si può chiedere esplicitamente:
     //   ./gradlew assembleRelease -PfirmaDebug     → versione "0.1-firmadebug"
     val firmaDebug = providers.gradleProperty("firmaDebug").isPresent
+    val passwordFirma = providers.environmentVariable("IMASH_FIRMA_PASSWORD").orNull
     val proprietaFirma = rootProject.file("keystore.properties").takeIf { it.exists() }?.let { f ->
         Properties().apply { f.inputStream().use { load(it) } }
     }
     signingConfigs {
-        if (proprietaFirma != null) {
+        if (proprietaFirma != null && !passwordFirma.isNullOrEmpty()) {
             create("imash") {
                 storeFile = rootProject.file(proprietaFirma.getProperty("storeFile"))
-                storePassword = proprietaFirma.getProperty("storePassword")
+                storePassword = passwordFirma
                 keyAlias = proprietaFirma.getProperty("keyAlias")
-                keyPassword = proprietaFirma.getProperty("keyPassword")
+                keyPassword = passwordFirma          // chiave PKCS12 di keytool: stessa password
             }
         }
     }
@@ -61,7 +64,7 @@ android {
             if (firmaVera == null) {
                 if (firmaDebug) versionNameSuffix = "-firmadebug"
                 logger.warn(
-                    "Imash: manca android/keystore.properties, la release " +
+                    "Imash: manca la chiave (keystore.properties) o la password (usa android/firma-release.ps1), la release " +
                         if (firmaDebug) "è firmata con la chiave di DEBUG (solo per prove)." else "NON sarà firmata.",
                 )
             }

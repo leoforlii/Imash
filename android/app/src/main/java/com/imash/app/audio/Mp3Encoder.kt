@@ -13,9 +13,11 @@ class Mp3Encoder(
     private val canali: Int,
     private val uscita: OutputStream,
     kbps: Int = 320,
+    /** Per [CodificaParallela]: frame indipendenti (senza serbatoio di bit) e senza frame "Info". */
+    perPezzi: Boolean = false,
 ) : Closeable {
 
-    private var handle = nativeInit(sampleRate, canali, kbps)
+    private var handle = nativeInit(sampleRate, canali, kbps, perPezzi)
     private var bufferMp3 = ByteArray(0)
 
     init {
@@ -51,7 +53,7 @@ class Mp3Encoder(
             System.loadLibrary("imash_audio")
         }
 
-        @JvmStatic external fun nativeInit(sampleRate: Int, canali: Int, kbps: Int): Long
+        @JvmStatic external fun nativeInit(sampleRate: Int, canali: Int, kbps: Int, perPezzi: Boolean): Long
         @JvmStatic external fun nativeEncode(
             handle: Long, sinistra: FloatArray, destra: FloatArray?, campioni: Int, uscita: ByteArray,
         ): Int

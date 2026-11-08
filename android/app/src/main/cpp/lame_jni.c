@@ -11,8 +11,11 @@
 #define ERRORE_ARGOMENTI (-1000)
 #define ERRORE_MEMORIA   (-1001)
 
+// perPezzi: l'mp3 si codifica a pezzi in parallelo e i frame si riattaccano (CodificaParallela),
+// quindi ogni frame deve stare in piedi da solo: niente serbatoio di bit (a 320 kbps la differenza
+// non si sente) e niente frame "Info" iniziale.
 JNIEXPORT jlong JNICALL FUNZ(nativeInit)(JNIEnv *env, jclass cls,
-                                         jint sampleRate, jint canali, jint kbps) {
+                                         jint sampleRate, jint canali, jint kbps, jboolean perPezzi) {
     lame_t l = lame_init();
     if (!l) return 0;
     lame_set_in_samplerate(l, sampleRate);
@@ -22,6 +25,10 @@ JNIEXPORT jlong JNICALL FUNZ(nativeInit)(JNIEnv *env, jclass cls,
     lame_set_VBR(l, vbr_off);
     lame_set_brate(l, kbps);
     lame_set_quality(l, 5);  // 5 = predefinito di LAME: a 320 kbps non si sente la differenza dal 2, ~2× più veloce
+    if (perPezzi) {
+        lame_set_disable_reservoir(l, 1);
+        lame_set_bWriteVbrTag(l, 0);
+    }
     if (lame_init_params(l) < 0) {
         lame_close(l);
         return 0;

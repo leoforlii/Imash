@@ -5,7 +5,7 @@ import android.net.Uri
 import android.util.Log
 import com.imash.app.audio.LettoreAudio
 import com.imash.app.audio.LettorePcm
-import com.imash.app.audio.Mp3Encoder
+import com.imash.app.audio.CodificaParallela
 import com.imash.app.audio.ScrittorePcm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -51,7 +51,7 @@ sealed interface RisultatoMashup {
  *    in parallelo; intanto ogni brano viene salvato come PCM 16 bit nella cache.
  * 2. Transizione per ogni coppia con [SceltaTransizione], piano delle durate con [DurationPlanner].
  * 3. Mix con il [MashupRenderer], letto dalla cache e salvato a sua volta come PCM (fase "Taglio").
- * 4. Mix riletto, scalato al picco 0,95 e codificato in mp3 (fase "Unione").
+ * 4. Mix riletto, scalato al picco 0,95 e codificato in mp3 a pezzi in parallelo (fase "Unione").
  * Si può interrompere annullando la coroutine: il controllo avviene a ogni blocco letto.
  */
 class GeneratoreMashup(
@@ -132,19 +132,11 @@ class GeneratoreMashup(
         if (scrittore.saturati > 0) Log.w("Imash", "Mix: ${scrittore.saturati} campioni limitati a ±1")
 
         val scala = if (scrittore.picco > 0f) MashupRenderer.PICCO / scrittore.picco else 1f
-        val totale = renderer.campioniTotali
-        var codificati = 0L
+        // Codifica a pezzi in parallelo (sul telefono era il 35% del tempo), riattaccati in un solo mp3.
+        avanzamento(Passo.Unione(0.0))
         uscita.outputStream().buffered().use { file ->
-            Mp3Encoder(SR, 2, file).use { encoder ->
-                avanzamento(Passo.Unione(0.0))
-                val passo = SR * 2L                 // un aggiornamento ogni 2 s di mix
-                LettorePcm.leggi(mix, scala = scala) { b, n ->
-                    contesto.ensureActive()
-                    encoder.codifica(b, n)
-                    val prima = codificati / passo
-                    codificati += n
-                    if (codificati / passo != prima) avanzamento(Passo.Unione(codificati.toDouble() / totale))
-                }
+            CodificaParallela.codifica(mix, renderer.campioniTotali, scala, SR, PARALLELISMO, lavoro, file) {
+                avanzamento(Passo.Unione(it))
             }
         }
         mix.delete()

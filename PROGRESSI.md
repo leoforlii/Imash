@@ -736,4 +736,28 @@ Registro di ogni attività svolta nel progetto, in ordine cronologico.
   unione 7,1 s), contro 45-65 s sull'emulatore. Nessun crash; memoria dell'app ~160 MB (PSS) a fine lavoro.
 - Nota per la velocità: sul telefono l'unione pesa il 35% (7 s); l'unione in parallelo potrebbe toglierne qualche
   secondo. Da decidere con l'utente.
-- **Prossimo passo**: impressioni dell'utente sulla prova (audio, interfaccia), poi commit su `altro-pc`.
+- ✅ L'utente ha chiesto di salvare: commit `e7cb150` sul ramo `altro-pc`.
+
+### 41. Password della chiave fuori dal disco e unione in parallelo
+- Domanda dell'utente: "è sicuro lasciare la password così scoperta?". Risposta: è la pratica standard (file locale,
+  escluso da git), ma chiave e password stavano nella stessa cartella. **Scelta dell'utente: variabile d'ambiente.**
+- ✅ `build.gradle.kts` legge la password da `IMASH_FIRMA_PASSWORD`; `keystore.properties` ha solo `storeFile` e
+  `keyAlias` (password tolta riscrivendo il file, senza leggerla). Nuovo script **`android/firma-release.ps1`**:
+  chiede la password nascosta (`Read-Host -AsSecureString`), la passa a Gradle solo per quella compilazione
+  (`--no-configuration-cache`, così non finisce nei file di Gradle), ferma il demone e la cancella. Uso:
+  `powershell -ExecutionPolicy Bypass -File firma-release.ps1`. Cancellata anche la vecchia cache di configurazione.
+  Senza password la release esce non firmata con un avviso (verificato).
+- ✅ **Unione in parallelo** (richiesta dell'utente), `audio/CodificaParallela.kt`: il mix si divide in al massimo
+  4 pezzi su confini di frame, ognuno codificato dal suo LAME in parallelo, poi i frame si riattaccano in un solo
+  mp3. Per giunture senza difetti: LAME senza serbatoio di bit e senza frame "Info" (`perPezzi` in `Mp3Encoder` e
+  `lame_jni.c`), ogni pezzo parte 3 frame prima (riscaldamento, frame buttati) e legge 3 frame dopo (sguardo in
+  avanti); il ritardo di LAME è lo stesso per tutti i pezzi, quindi i frame tenuti coprono gli stessi campioni
+  della codifica unica. `LettorePcm.leggi` ha ora `inizio`; `FrameMp3` legge i frame MPEG-1 Layer III.
+- ✅ Test **58/58** (4 nuovi in `CodificaParallelaTest`: pezzi contigui con riscaldamento e margine, brano
+  cortissimo in un pezzo solo, frame da 1044/1045 byte, byte non validi), lint 0 avvisi.
+- ✅ **Telefono** (Galaxy S23+, release firmata dallo script): unione **da 7,1 a 3,0 s**. Totale 22,4 s
+  (analisi 17,8 s contro 11,2 s della prova prima: il codice dell'analisi non è cambiato, differenza dovuta allo
+  stato del telefono, da riverificare). mp3 salvato dall'utente: **23.193 frame tutti a 320 kbps, 0 byte non
+  validi, 605,9 s**; inviato all'utente da ascoltare alle giunture (~2:31, 5:03, 7:34).
+- Nota: senza serbatoio di bit, a 320 kbps la qualità dovrebbe restare indistinguibile; da confermare all'ascolto.
+- ✅ L'utente ha ascoltato le giunture: nessun difetto ("Tutto ok"). Salvato su `altro-pc`.
