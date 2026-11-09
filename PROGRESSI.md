@@ -768,3 +768,27 @@ Registro di ogni attività svolta nel progetto, in ordine cronologico.
 - ✅ `firma-release.ps1` ora copia l'APK firmato anche sul Desktop come **`Imash.apk`**
   (`C:\Users\leona\OneDrive\Desktop\Imash.apk`); l'originale resta in
   `android\app\build\outputs\apk\release\app-release.apk`. Copiato sul Desktop anche l'APK attuale.
+
+### 43. Versione 0.2: informazioni, privacy e licenze per distribuire l'app
+- Domanda dell'utente: si può dare l'app agli amici rispettando privacy, cookie e simili? Risposta (non consulenza
+  legale): privacy e cookie a posto (nessun dato raccolto o inviato, niente rete, salvati solo dati necessari al
+  funzionamento → niente informativa né banner per una distribuzione fra amici; servirebbero solo sul Play Store);
+  da sistemare le **licenze**: LAME è LGPL (citarla, testo della licenza, accesso al codice sorgente), Apache 2.0 per
+  AndroidX/Kotlin/Reorderable/icone, OFL per i caratteri; brevetti mp3 scaduti; avviso sul diritto d'autore dei
+  mashup condivisi.
+- ✅ L'utente ha reso **pubblico** il repository `leoforlii/Imash` (scelto al posto di includere i sorgenti di LAME
+  nell'APK). Controllato prima: nella cronologia non ci sono chiavi, password né brani.
+- ✅ `data/Licenze.kt` (componenti, autori, licenza, sito, link al codice sorgente) e testi completi in `res/raw/`
+  (`licenza_lgpl.txt` = COPYING di LAME, `licenza_apache2.txt`, `licenza_ofl_bricolage.txt`, `licenza_ofl_figtree.txt`).
+- ✅ `ui/SchermataLicenze.kt` (scheda per componente con "Sito" e "Mostra licenza") e, in fondo alle Impostazioni,
+  sezione **Informazioni**: versione, nota sulla privacy, nota sul diritto d'autore, pulsanti "Licenze" e
+  "Codice sorgente". Nuova rotta `Schermata.Licenze`.
+- ✅ Versione **0.2** (`versionCode 2`): si installa sopra la 0.1 senza disinstallare (stessa chiave).
+- Errore segnalato dall'utente in VS Code ("CONFIGURE FAILED … gradle-server"): veniva dall'estensione "Gradle for
+  Java" (anteprima Compose), non dallo script; risolto con `testOptions.unitTests.isIncludeAndroidResources = true`.
+- ✅ Test 58/58, lint 0 avvisi (corretto `LocalContextResourcesRead` usando `LocalResources`). APK firmato dall'utente
+  con lo script: 2,19 MB, certificato CN=leonardo forli, versionCode 2 / versionName 0.2, copia sul Desktop.
+- Da verificare: installazione dell'aggiornamento sul telefono (al momento scollegato).
+- Domanda dell'utente: aggiornare l'app senza rimandare l'APK? Proposte: GitHub Releases + Obtainium (Imash resta
+  offline), aggiornamento dentro l'app (servirebbero INTERNET e REQUEST_INSTALL_PACKAGES), Google Play test interno.
+  **Scelta dell'utente: per ora si continua a mandare l'APK**; se ne riparlerà più avanti.

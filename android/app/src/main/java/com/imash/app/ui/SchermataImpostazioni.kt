@@ -1,6 +1,11 @@
 package com.imash.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import com.imash.app.data.Licenze
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,7 +45,7 @@ import kotlin.math.roundToInt
 /** Schermata 4 del design: durata del mashup con un cursore da 3 a 30 minuti, salvata con DataStore. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SchermataImpostazioni(indietro: () -> Unit) {
+fun SchermataImpostazioni(indietro: () -> Unit, apriLicenze: () -> Unit) {
     val context = LocalContext.current
     val impostazioni = remember { Impostazioni(context.applicationContext) }
     val salvati by impostazioni.durataMinuti.collectAsStateWithLifecycle(Impostazioni.DURATA_PREDEFINITA)
@@ -68,6 +73,7 @@ fun SchermataImpostazioni(indietro: () -> Unit) {
             Modifier
                 .fillMaxSize()
                 .padding(margini)
+                .verticalScroll(rememberScrollState())
                 .padding(Spaziature.sp4),
             verticalArrangement = Arrangement.spacedBy(Spaziature.sp3),
         ) {
@@ -109,6 +115,36 @@ fun SchermataImpostazioni(indietro: () -> Unit) {
                 onClick = { cursore = Impostazioni.DURATA_PREDEFINITA.toFloat(); salva(Impostazioni.DURATA_PREDEFINITA) },
                 enabled = minuti != Impostazioni.DURATA_PREDEFINITA,
             ) { Text("Ripristina ${Impostazioni.DURATA_PREDEFINITA} minuti") }
+            Informazioni(apriLicenze)
         }
+    }
+}
+
+/** Versione, privacy, diritto d'autore, codice sorgente e licenze (per distribuire l'app agli amici). */
+@Composable
+private fun Informazioni(apriLicenze: () -> Unit) {
+    val context = LocalContext.current
+    val link = LocalUriHandler.current
+    val versione = remember {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
+    }
+    HorizontalDivider(Modifier.padding(vertical = Spaziature.sp2))
+    Text("Informazioni", style = MaterialTheme.typography.titleMedium)
+    Text("Imash ${versione.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
+    Text(
+        "Privacy: Imash non raccoglie e non invia nessun dato. Funziona senza internet e tutto resta sul " +
+            "telefono: i brani li scegli tu e i file di lavoro vengono cancellati.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        "Diritto d'autore: i mashup sono per uso personale. Pubblicarli o condividerli con canzoni protette " +
+            "può violare i diritti di chi le ha scritte e registrate.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(Spaziature.sp2)) {
+        TextButton(onClick = apriLicenze) { Text("Licenze") }
+        TextButton(onClick = { runCatching { link.openUri(Licenze.CODICE_SORGENTE) } }) { Text("Codice sorgente") }
     }
 }

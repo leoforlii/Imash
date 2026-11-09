@@ -13,8 +13,8 @@ android {
         applicationId = "com.imash.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "0.2"
     }
 
     // Chiave di firma vera: android/keystore.properties (fuori da git) con storeFile e keyAlias; la
@@ -78,6 +78,12 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    testOptions {
+        // Serve all'anteprima Compose che VS Code ("Gradle for Java") prepara quando apre il progetto:
+        // senza, la sua sincronizzazione fallisce. Ai test (solo JVM) non cambia nulla.
+        unitTests.isIncludeAndroidResources = true
     }
 
     lint {

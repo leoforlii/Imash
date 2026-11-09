@@ -11,7 +11,7 @@ import com.imash.app.servizio.Esito
 
 
 /** Le schermate del design (design/schermate.html). */
-enum class Schermata { Brani, Elaborazione, Risultato, Impostazioni }
+enum class Schermata { Brani, Elaborazione, Risultato, Impostazioni, Licenze }
 
 @Composable
 fun NavigazioneImash(nav: NavHostController = rememberNavController()) {
@@ -32,7 +32,13 @@ fun NavigazioneImash(nav: NavHostController = rememberNavController()) {
             )
         }
         composable(Schermata.Impostazioni.name) {
-            SchermataImpostazioni(indietro = { nav.popBackStack() })
+            SchermataImpostazioni(
+                indietro = { nav.popBackStack() },
+                apriLicenze = { nav.navigate(Schermata.Licenze.name) },
+            )
+        }
+        composable(Schermata.Licenze.name) {
+            SchermataLicenze(indietro = { nav.popBackStack() })
         }
         composable(Schermata.Elaborazione.name) {
             SchermataElaborazione(pronto = versoRisultato, tornaAiBrani = tornaAiBrani)
